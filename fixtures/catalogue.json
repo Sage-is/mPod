@@ -1,0 +1,983 @@
+{
+ "schemaVersion": 3,
+ "storefront": "us",
+ "language": "en-US",
+ "songs": [
+  {
+   "id": "s000",
+   "name": "Paper Rivers 00 (Extended Fixture Mix For Marquee Testing)",
+   "artistName": "Alder Quay",
+   "artistIds": [
+    "a00"
+   ],
+   "previewUrl": "/fixtures/audio/tone-0.wav",
+   "albumName": "Fixture Album 00",
+   "durationInMillis": 180000,
+   "playParams": {
+    "id": "s000",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/000"
+  },
+  {
+   "id": "s001",
+   "name": "Silver Engines 01",
+   "artistName": "Brass Lantern",
+   "artistIds": [
+    "a01"
+   ],
+   "previewUrl": "/fixtures/audio/tone-1.wav",
+   "albumName": "Fixture Album 01",
+   "durationInMillis": 181000,
+   "playParams": {
+    "id": "s001",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/001"
+  },
+  {
+   "id": "s002",
+   "name": "Northern Satellites 02",
+   "artistName": "Cobalt Orchard",
+   "artistIds": [
+    "a02"
+   ],
+   "previewUrl": "/fixtures/audio/tone-2.wav",
+   "albumName": "Fixture Album 02",
+   "durationInMillis": 182000,
+   "playParams": {
+    "id": "s002",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/002"
+  },
+  {
+   "id": "s003",
+   "name": "Quiet Signals 03",
+   "artistName": "Dune Parade",
+   "artistIds": [
+    "a03"
+   ],
+   "previewUrl": "/fixtures/audio/tone-3.wav",
+   "albumName": "Fixture Album 03",
+   "durationInMillis": 183000,
+   "playParams": {
+    "id": "s003",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/003"
+  },
+  {
+   "id": "s004",
+   "name": "Velvet Gardens 04",
+   "artistName": "Ember Valley",
+   "artistIds": [
+    "a04"
+   ],
+   "previewUrl": "/fixtures/audio/tone-4.wav",
+   "albumName": "Fixture Album 04",
+   "durationInMillis": 184000,
+   "playParams": {
+    "id": "s004",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/004"
+  },
+  {
+   "id": "s005",
+   "name": "Hollow Windows 05",
+   "artistName": "Foxglove Union",
+   "artistIds": [
+    "a05"
+   ],
+   "previewUrl": "/fixtures/audio/tone-5.wav",
+   "albumName": "Fixture Album 05",
+   "durationInMillis": 185000,
+   "playParams": {
+    "id": "s005",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/005"
+  },
+  {
+   "id": "s006",
+   "name": "Golden Mornings 06",
+   "artistName": "Glass Harbor",
+   "artistIds": [
+    "a06"
+   ],
+   "previewUrl": "/fixtures/audio/tone-0.wav",
+   "albumName": "Fixture Album 06",
+   "durationInMillis": 186000,
+   "playParams": {
+    "id": "s006",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/006"
+  },
+  {
+   "id": "s007",
+   "name": "Distant Letters 07",
+   "artistName": "Hollow Pines",
+   "artistIds": [
+    "a07"
+   ],
+   "previewUrl": "/fixtures/audio/tone-1.wav",
+   "albumName": "Fixture Album 07",
+   "durationInMillis": 187000,
+   "playParams": {
+    "id": "s007",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/007"
+  },
+  {
+   "id": "s008",
+   "name": "Paper Rivers 08",
+   "artistName": "Indigo Ferry",
+   "artistIds": [
+    "a08"
+   ],
+   "previewUrl": "/fixtures/audio/tone-2.wav",
+   "albumName": "Fixture Album 08",
+   "durationInMillis": 188000,
+   "playParams": {
+    "id": "s008",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/008"
+  },
+  {
+   "id": "s009",
+   "name": "Silver Engines 09",
+   "artistName": "Juniper Static",
+   "artistIds": [
+    "a09"
+   ],
+   "previewUrl": "/fixtures/audio/tone-3.wav",
+   "albumName": "Fixture Album 09",
+   "durationInMillis": 189000,
+   "playParams": {
+    "id": "s009",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/009"
+  },
+  {
+   "id": "s010",
+   "name": "Northern Satellites 10",
+   "artistName": "Kestrel Row",
+   "artistIds": [
+    "a10"
+   ],
+   "previewUrl": "/fixtures/audio/tone-4.wav",
+   "albumName": "Fixture Album 10",
+   "durationInMillis": 190000,
+   "playParams": {
+    "id": "s010",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/010"
+  },
+  {
+   "id": "s011",
+   "name": "Quiet Signals 11 (Extended Fixture Mix For Marquee Testing)",
+   "artistName": "Lumen Tide",
+   "artistIds": [
+    "a11"
+   ],
+   "previewUrl": "/fixtures/audio/tone-5.wav",
+   "albumName": "Fixture Album 11",
+   "durationInMillis": 191000,
+   "playParams": {
+    "id": "s011",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/011"
+  },
+  {
+   "id": "s012",
+   "name": "Velvet Gardens 12",
+   "artistName": "Alder Quay",
+   "artistIds": [
+    "a00"
+   ],
+   "previewUrl": "/fixtures/audio/tone-0.wav",
+   "albumName": "Fixture Album 00",
+   "durationInMillis": 192000,
+   "playParams": {
+    "id": "s012",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/012"
+  },
+  {
+   "id": "s013",
+   "name": "Hollow Windows 13",
+   "artistName": "Brass Lantern",
+   "artistIds": [
+    "a01"
+   ],
+   "previewUrl": "/fixtures/audio/tone-1.wav",
+   "albumName": "Fixture Album 01",
+   "durationInMillis": 193000,
+   "playParams": {
+    "id": "s013",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/013"
+  },
+  {
+   "id": "s014",
+   "name": "Golden Mornings 14",
+   "artistName": "Cobalt Orchard",
+   "artistIds": [
+    "a02"
+   ],
+   "previewUrl": "/fixtures/audio/tone-2.wav",
+   "albumName": "Fixture Album 02",
+   "durationInMillis": 194000,
+   "playParams": {
+    "id": "s014",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/014"
+  },
+  {
+   "id": "s015",
+   "name": "Distant Letters 15",
+   "artistName": "Dune Parade",
+   "artistIds": [
+    "a03"
+   ],
+   "previewUrl": "/fixtures/audio/tone-3.wav",
+   "albumName": "Fixture Album 03",
+   "durationInMillis": 195000,
+   "playParams": {
+    "id": "s015",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/015"
+  },
+  {
+   "id": "s016",
+   "name": "Paper Rivers 16",
+   "artistName": "Ember Valley",
+   "artistIds": [
+    "a04"
+   ],
+   "previewUrl": "/fixtures/audio/tone-4.wav",
+   "albumName": "Fixture Album 04",
+   "durationInMillis": 196000,
+   "playParams": {
+    "id": "s016",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/016"
+  },
+  {
+   "id": "s017",
+   "name": "Silver Engines 17",
+   "artistName": "Foxglove Union",
+   "artistIds": [
+    "a05"
+   ],
+   "previewUrl": "/fixtures/audio/tone-5.wav",
+   "albumName": "Fixture Album 05",
+   "durationInMillis": 197000,
+   "playParams": {
+    "id": "s017",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/017"
+  },
+  {
+   "id": "s018",
+   "name": "Northern Satellites 18",
+   "artistName": "Glass Harbor",
+   "artistIds": [
+    "a06"
+   ],
+   "previewUrl": "/fixtures/audio/tone-0.wav",
+   "albumName": "Fixture Album 06",
+   "durationInMillis": 198000,
+   "playParams": {
+    "id": "s018",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/018"
+  },
+  {
+   "id": "s019",
+   "name": "Quiet Signals 19",
+   "artistName": "Hollow Pines",
+   "artistIds": [
+    "a07"
+   ],
+   "previewUrl": "/fixtures/audio/tone-1.wav",
+   "albumName": "Fixture Album 07",
+   "durationInMillis": 199000,
+   "playParams": {
+    "id": "s019",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/019"
+  },
+  {
+   "id": "s020",
+   "name": "Velvet Gardens 20",
+   "artistName": "Indigo Ferry",
+   "artistIds": [
+    "a08"
+   ],
+   "previewUrl": "/fixtures/audio/tone-2.wav",
+   "albumName": "Fixture Album 08",
+   "durationInMillis": 200000,
+   "playParams": {
+    "id": "s020",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/020"
+  },
+  {
+   "id": "s021",
+   "name": "Hollow Windows 21",
+   "artistName": "Juniper Static",
+   "artistIds": [
+    "a09"
+   ],
+   "previewUrl": "/fixtures/audio/tone-3.wav",
+   "albumName": "Fixture Album 09",
+   "durationInMillis": 201000,
+   "playParams": {
+    "id": "s021",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/021"
+  },
+  {
+   "id": "s022",
+   "name": "Golden Mornings 22 (Extended Fixture Mix For Marquee Testing)",
+   "artistName": "Kestrel Row",
+   "artistIds": [
+    "a10"
+   ],
+   "previewUrl": "/fixtures/audio/tone-4.wav",
+   "albumName": "Fixture Album 10",
+   "durationInMillis": 202000,
+   "playParams": {
+    "id": "s022",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/022"
+  },
+  {
+   "id": "s023",
+   "name": "Distant Letters 23",
+   "artistName": "Lumen Tide",
+   "artistIds": [
+    "a11"
+   ],
+   "previewUrl": "/fixtures/audio/tone-5.wav",
+   "albumName": "Fixture Album 11",
+   "durationInMillis": 203000,
+   "playParams": {
+    "id": "s023",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/023"
+  },
+  {
+   "id": "s024",
+   "name": "Paper Rivers 24",
+   "artistName": "Alder Quay",
+   "artistIds": [
+    "a00"
+   ],
+   "previewUrl": "/fixtures/audio/tone-0.wav",
+   "albumName": "Fixture Album 00",
+   "durationInMillis": 204000,
+   "playParams": {
+    "id": "s024",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/024"
+  },
+  {
+   "id": "s025",
+   "name": "Silver Engines 25",
+   "artistName": "Brass Lantern",
+   "artistIds": [
+    "a01"
+   ],
+   "previewUrl": "/fixtures/audio/tone-1.wav",
+   "albumName": "Fixture Album 01",
+   "durationInMillis": 205000,
+   "playParams": {
+    "id": "s025",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/025"
+  },
+  {
+   "id": "s026",
+   "name": "Northern Satellites 26",
+   "artistName": "Cobalt Orchard",
+   "artistIds": [
+    "a02"
+   ],
+   "previewUrl": "/fixtures/audio/tone-2.wav",
+   "albumName": "Fixture Album 02",
+   "durationInMillis": 206000,
+   "playParams": {
+    "id": "s026",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/026"
+  },
+  {
+   "id": "s027",
+   "name": "Quiet Signals 27",
+   "artistName": "Dune Parade",
+   "artistIds": [
+    "a03"
+   ],
+   "previewUrl": "/fixtures/audio/tone-3.wav",
+   "albumName": "Fixture Album 03",
+   "durationInMillis": 207000,
+   "playParams": {
+    "id": "s027",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/027"
+  },
+  {
+   "id": "s028",
+   "name": "Velvet Gardens 28",
+   "artistName": "Ember Valley",
+   "artistIds": [
+    "a04"
+   ],
+   "previewUrl": "/fixtures/audio/tone-4.wav",
+   "albumName": "Fixture Album 04",
+   "durationInMillis": 208000,
+   "playParams": {
+    "id": "s028",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/028"
+  },
+  {
+   "id": "s029",
+   "name": "Hollow Windows 29",
+   "artistName": "Foxglove Union",
+   "artistIds": [
+    "a05"
+   ],
+   "previewUrl": "/fixtures/audio/tone-5.wav",
+   "albumName": "Fixture Album 05",
+   "durationInMillis": 209000,
+   "playParams": {
+    "id": "s029",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/029"
+  },
+  {
+   "id": "s030",
+   "name": "Golden Mornings 30",
+   "artistName": "Glass Harbor",
+   "artistIds": [
+    "a06"
+   ],
+   "previewUrl": "/fixtures/audio/tone-0.wav",
+   "albumName": "Fixture Album 06",
+   "durationInMillis": 210000,
+   "playParams": {
+    "id": "s030",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/030"
+  },
+  {
+   "id": "s031",
+   "name": "Distant Letters 31",
+   "artistName": "Hollow Pines",
+   "artistIds": [
+    "a07"
+   ],
+   "previewUrl": "/fixtures/audio/tone-1.wav",
+   "albumName": "Fixture Album 07",
+   "durationInMillis": 211000,
+   "playParams": {
+    "id": "s031",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/031"
+  },
+  {
+   "id": "s032",
+   "name": "Paper Rivers 32",
+   "artistName": "Indigo Ferry",
+   "artistIds": [
+    "a08"
+   ],
+   "previewUrl": "/fixtures/audio/tone-2.wav",
+   "albumName": "Fixture Album 08",
+   "durationInMillis": 212000,
+   "playParams": {
+    "id": "s032",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/032"
+  },
+  {
+   "id": "s033",
+   "name": "Silver Engines 33 (Extended Fixture Mix For Marquee Testing)",
+   "artistName": "Juniper Static",
+   "artistIds": [
+    "a09"
+   ],
+   "previewUrl": "/fixtures/audio/tone-3.wav",
+   "albumName": "Fixture Album 09",
+   "durationInMillis": 213000,
+   "playParams": {
+    "id": "s033",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/033"
+  },
+  {
+   "id": "s034",
+   "name": "Northern Satellites 34",
+   "artistName": "Kestrel Row",
+   "artistIds": [
+    "a10"
+   ],
+   "previewUrl": "/fixtures/audio/tone-4.wav",
+   "albumName": "Fixture Album 10",
+   "durationInMillis": 214000,
+   "playParams": {
+    "id": "s034",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/034"
+  },
+  {
+   "id": "s035",
+   "name": "Quiet Signals 35",
+   "artistName": "Lumen Tide",
+   "artistIds": [
+    "a11"
+   ],
+   "previewUrl": "/fixtures/audio/tone-5.wav",
+   "albumName": "Fixture Album 11",
+   "durationInMillis": 215000,
+   "playParams": {
+    "id": "s035",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/035"
+  },
+  {
+   "id": "s036",
+   "name": "Velvet Gardens 36",
+   "artistName": "Alder Quay",
+   "artistIds": [
+    "a00"
+   ],
+   "previewUrl": "/fixtures/audio/tone-0.wav",
+   "albumName": "Fixture Album 00",
+   "durationInMillis": 216000,
+   "playParams": {
+    "id": "s036",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/036"
+  },
+  {
+   "id": "s037",
+   "name": "Hollow Windows 37",
+   "artistName": "Brass Lantern",
+   "artistIds": [
+    "a01"
+   ],
+   "previewUrl": "/fixtures/audio/tone-1.wav",
+   "albumName": "Fixture Album 01",
+   "durationInMillis": 217000,
+   "playParams": {
+    "id": "s037",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/037"
+  },
+  {
+   "id": "s038",
+   "name": "Golden Mornings 38",
+   "artistName": "Cobalt Orchard",
+   "artistIds": [
+    "a02"
+   ],
+   "previewUrl": "/fixtures/audio/tone-2.wav",
+   "albumName": "Fixture Album 02",
+   "durationInMillis": 218000,
+   "playParams": {
+    "id": "s038",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/038"
+  },
+  {
+   "id": "s039",
+   "name": "Distant Letters 39",
+   "artistName": "Dune Parade",
+   "artistIds": [
+    "a03"
+   ],
+   "previewUrl": "/fixtures/audio/tone-3.wav",
+   "albumName": "Fixture Album 03",
+   "durationInMillis": 219000,
+   "playParams": {
+    "id": "s039",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/039"
+  },
+  {
+   "id": "s040",
+   "name": "Paper Rivers 40",
+   "artistName": "Ember Valley",
+   "artistIds": [
+    "a04"
+   ],
+   "previewUrl": "/fixtures/audio/tone-4.wav",
+   "albumName": "Fixture Album 04",
+   "durationInMillis": 220000,
+   "playParams": {
+    "id": "s040",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/040"
+  },
+  {
+   "id": "s041",
+   "name": "Silver Engines 41",
+   "artistName": "Foxglove Union",
+   "artistIds": [
+    "a05"
+   ],
+   "previewUrl": "/fixtures/audio/tone-5.wav",
+   "albumName": "Fixture Album 05",
+   "durationInMillis": 221000,
+   "playParams": {
+    "id": "s041",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/041"
+  },
+  {
+   "id": "s042",
+   "name": "Northern Satellites 42",
+   "artistName": "Glass Harbor",
+   "artistIds": [
+    "a06"
+   ],
+   "previewUrl": "/fixtures/audio/tone-0.wav",
+   "albumName": "Fixture Album 06",
+   "durationInMillis": 222000,
+   "playParams": {
+    "id": "s042",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/042"
+  },
+  {
+   "id": "s043",
+   "name": "Quiet Signals 43",
+   "artistName": "Hollow Pines",
+   "artistIds": [
+    "a07"
+   ],
+   "previewUrl": "/fixtures/audio/tone-1.wav",
+   "albumName": "Fixture Album 07",
+   "durationInMillis": 223000,
+   "playParams": {
+    "id": "s043",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/043"
+  },
+  {
+   "id": "s044",
+   "name": "Velvet Gardens 44 (Extended Fixture Mix For Marquee Testing)",
+   "artistName": "Indigo Ferry",
+   "artistIds": [
+    "a08"
+   ],
+   "previewUrl": "/fixtures/audio/tone-2.wav",
+   "albumName": "Fixture Album 08",
+   "durationInMillis": 224000,
+   "playParams": {
+    "id": "s044",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/044"
+  },
+  {
+   "id": "s045",
+   "name": "Hollow Windows 45",
+   "artistName": "Juniper Static",
+   "artistIds": [
+    "a09"
+   ],
+   "previewUrl": "/fixtures/audio/tone-3.wav",
+   "albumName": "Fixture Album 09",
+   "durationInMillis": 225000,
+   "playParams": {
+    "id": "s045",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/045"
+  },
+  {
+   "id": "s046",
+   "name": "Golden Mornings 46",
+   "artistName": "Kestrel Row",
+   "artistIds": [
+    "a10"
+   ],
+   "previewUrl": "/fixtures/audio/tone-4.wav",
+   "albumName": "Fixture Album 10",
+   "durationInMillis": 226000,
+   "playParams": {
+    "id": "s046",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/046"
+  },
+  {
+   "id": "s047",
+   "name": "Distant Letters 47",
+   "artistName": "Lumen Tide",
+   "artistIds": [
+    "a11"
+   ],
+   "previewUrl": "/fixtures/audio/tone-5.wav",
+   "albumName": "Fixture Album 11",
+   "durationInMillis": 227000,
+   "playParams": {
+    "id": "s047",
+    "kind": "song"
+   },
+   "url": "/fixtures/song/047"
+  }
+ ],
+ "artists": [
+  {
+   "id": "a00",
+   "name": "Alder Quay",
+   "songIds": [
+    "s000",
+    "s012",
+    "s024",
+    "s036"
+   ]
+  },
+  {
+   "id": "a01",
+   "name": "Brass Lantern",
+   "songIds": [
+    "s001",
+    "s013",
+    "s025",
+    "s037"
+   ]
+  },
+  {
+   "id": "a02",
+   "name": "Cobalt Orchard",
+   "songIds": [
+    "s002",
+    "s014",
+    "s026",
+    "s038"
+   ]
+  },
+  {
+   "id": "a03",
+   "name": "Dune Parade",
+   "songIds": [
+    "s003",
+    "s015",
+    "s027",
+    "s039"
+   ]
+  },
+  {
+   "id": "a04",
+   "name": "Ember Valley",
+   "songIds": [
+    "s004",
+    "s016",
+    "s028",
+    "s040"
+   ]
+  },
+  {
+   "id": "a05",
+   "name": "Foxglove Union",
+   "songIds": [
+    "s005",
+    "s017",
+    "s029",
+    "s041"
+   ]
+  },
+  {
+   "id": "a06",
+   "name": "Glass Harbor",
+   "songIds": [
+    "s006",
+    "s018",
+    "s030",
+    "s042"
+   ]
+  },
+  {
+   "id": "a07",
+   "name": "Hollow Pines",
+   "songIds": [
+    "s007",
+    "s019",
+    "s031",
+    "s043"
+   ]
+  },
+  {
+   "id": "a08",
+   "name": "Indigo Ferry",
+   "songIds": [
+    "s008",
+    "s020",
+    "s032",
+    "s044"
+   ]
+  },
+  {
+   "id": "a09",
+   "name": "Juniper Static",
+   "songIds": [
+    "s009",
+    "s021",
+    "s033",
+    "s045"
+   ]
+  },
+  {
+   "id": "a10",
+   "name": "Kestrel Row",
+   "songIds": [
+    "s010",
+    "s022",
+    "s034",
+    "s046"
+   ]
+  },
+  {
+   "id": "a11",
+   "name": "Lumen Tide",
+   "songIds": [
+    "s011",
+    "s023",
+    "s035",
+    "s047"
+   ]
+  }
+ ],
+ "playlists": [
+  {
+   "id": "p0",
+   "name": "Fixture Playlist 0",
+   "url": "/fixtures/playlist/0",
+   "songIds": [
+    "s000",
+    "s001",
+    "s002",
+    "s003",
+    "s004",
+    "s005",
+    "s006",
+    "s007",
+    "s008",
+    "s009",
+    "s010",
+    "s011"
+   ],
+   "trackCount": 12,
+   "curatorName": "Fixtures"
+  },
+  {
+   "id": "p1",
+   "name": "Fixture Playlist 1",
+   "url": "/fixtures/playlist/1",
+   "songIds": [
+    "s006",
+    "s007",
+    "s008",
+    "s009",
+    "s010",
+    "s011",
+    "s012",
+    "s013",
+    "s014",
+    "s015",
+    "s016",
+    "s017"
+   ],
+   "trackCount": 12,
+   "curatorName": "Fixtures"
+  },
+  {
+   "id": "p2",
+   "name": "Fixture Playlist 2",
+   "url": "/fixtures/playlist/2",
+   "songIds": [
+    "s012",
+    "s013",
+    "s014",
+    "s015",
+    "s016",
+    "s017",
+    "s018",
+    "s019",
+    "s020",
+    "s021",
+    "s022",
+    "s023"
+   ],
+   "trackCount": 12,
+   "curatorName": "Fixtures"
+  },
+  {
+   "id": "p3",
+   "name": "Fixture Playlist 3",
+   "url": "/fixtures/playlist/3",
+   "songIds": [
+    "s018",
+    "s019",
+    "s020",
+    "s021",
+    "s022",
+    "s023",
+    "s024",
+    "s025",
+    "s026",
+    "s027",
+    "s028",
+    "s029"
+   ],
+   "trackCount": 12,
+   "curatorName": "Fixtures"
+  }
+ ]
+}

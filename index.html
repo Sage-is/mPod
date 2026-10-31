@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mPod</title>
+<link rel="icon" href="data:,">
+<style>
+  html { height: 100%; background: #1f1f1f; }
+  body { margin: 0; min-height: 100%; }
+  main {
+    box-sizing: border-box;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: max(20px, calc(50vh - 360px));
+    overflow: hidden;
+  }
+</style>
+<script type="module" src="src/pod-player.js"></script>
+</head>
+<body>
+<main>
+  <pod-player import></pod-player>
+</main>
+</body>
+</html>

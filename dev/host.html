@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pod</title>
+<style>
+  html, body { margin: 0; background: #1f1f1f; }
+  #stage { display: flex; justify-content: center; padding: 20px 0; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script type="module">
+  await import("/src/pod-player.js");
+  const player = document.createElement("pod-player");
+  const params = new URLSearchParams(location.search);
+    player.setAttribute("catalogue-url", params.get("catalogue") ?? "/fixtures/catalogue.json");
+    if (params.has("import")) player.setAttribute("import", "");
+  document.getElementById("stage").append(player);
+  document.documentElement.dataset.ready = "1";
+</script>
+</body>
+</html>
