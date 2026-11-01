@@ -5,7 +5,7 @@ import { T } from "./h.mjs";
 
 const t = new T();
 const text = readFileSync("fonts/pod-screen.glyphs.txt", "utf8");
-const font = readFileSync("src/pod-screen.ttf");
+const font = readFileSync("fonts/pod-screen-a2.ttf");
 
 const blocks = text.split(/\n\s*\n/).map((b) => b.split("\n").filter((l) => l && !l.startsWith("#"))).filter((l) => l.length);
 const art = new Map();
@@ -91,7 +91,7 @@ t.eq("no third-party names", Object.values(strings).filter((s) => !/mPod|PodScre
 
 const before = font.toString("hex");
 execFileSync(process.execPath, ["fonts/build-font.mjs"], { stdio: "ignore" });
-t.eq("the checked-in font matches its source", readFileSync("src/pod-screen.ttf").toString("hex") === before, true);
+t.eq("the checked-in font matches its source", readFileSync("fonts/pod-screen-a2.ttf").toString("hex") === before, true);
 
 t.done();
 process.exit(t.exitCode);

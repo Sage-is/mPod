@@ -20,7 +20,7 @@ export const template = (titleId) => `
             </div>
             <div class="body-clip"></div>
           </div>
-          <div class="overlay boot" hidden><span>Pod</span></div>
+          <div class="overlay boot" hidden><span></span></div>
           <div class="overlay offline" hidden>${ICONS.sadPlayer}<p></p></div>
           <div class="vh live" role="status"></div>
         </div>

@@ -51,6 +51,15 @@ Touch has never been tested on a real device. Treat it as a first-class input:
 - Tap targets stay at least 44 px at the smallest scale.
 - With Clicker on, also call `navigator.vibrate(4)` per detent where available. Limit it to 25 per second.
 
+## About
+
+The product page shows only true values under `Songs`:
+
+- `Library`: the total size of imported files, in MB below 1 GB and GB from there, to one decimal.
+- `Version`: the first 8 characters of the precache hash, from the generated `src/version.js`. That file sits outside the hash.
+
+There is no `Capacity` or `Available`. A browser does not reveal the disk: `navigator.storage.estimate()` in Chrome 156 reported usage plus 10 GiB on a Mac with 29.8 GB free. The test page keeps 23's fixed values.
+
 ## Keep awake
 
 Do not use a wake lock. Audio continues with the screen off.

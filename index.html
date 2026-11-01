@@ -2,25 +2,34 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f1f1f">
 <title>mPod</title>
-<link rel="icon" href="data:,">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
-  html { height: 100%; background: #1f1f1f; }
-  body { margin: 0; min-height: 100%; }
+  html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; background: #1f1f1f; }
   main {
     box-sizing: border-box;
-    min-height: 100vh;
-    min-height: 100dvh;
-    padding-top: max(20px, calc(50vh - 360px));
+    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 </style>
 <script type="module" src="src/pod-player.js"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch((err) => console.warn("mPod: offline start unavailable", err));
+    });
+  }
+</script>
 </head>
 <body>
 <main>
-  <pod-player import></pod-player>
+  <pod-player import fit></pod-player>
 </main>
 </body>
 </html>

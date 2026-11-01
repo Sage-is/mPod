@@ -5,7 +5,7 @@ const FLIP_AT = 1;
 const RESTART_AFTER = 3;
 
 const logRejection = (label) => (err) => {
-  if (err?.name !== "AbortError") console.warn(`pod-player: ${label}`, err);
+  if (err?.name !== "AbortError" && err?.name !== "OpenFailed") console.warn(`pod-player: ${label}`, err);
 };
 
 function shuffled(items) {
@@ -18,6 +18,7 @@ function shuffled(items) {
 }
 
 // host: { graph, changed(), trackChanged(), queueChanged(), queueEnded({ids, index}), applyVolume() }
+// Optional on host: files, openFailed(song), watchMedia, mediaEvent(), durationKnown(song, seconds), after(seconds, fn)
 export class Playback {
   queue = [];
   index = -1;
@@ -41,6 +42,7 @@ export class Playback {
   pendingPause = false;
   cancelStart = null;
   chain = Promise.resolve();
+  unreadable = new Set();
 
   constructor(host) { this.host = host; }
 
@@ -69,11 +71,45 @@ export class Playback {
 
   #make(pos) {
     const queueIndex = this.order[pos];
-    const ch = new Channel(this.host.graph, this.queue[queueIndex], queueIndex, pos);
+    const ch = new Channel(this.host.graph, this.queue[queueIndex], queueIndex, pos, this.host.files);
+    ch.ready?.catch(() => this.#openFailed(ch));
     ch.on("timeupdate", () => this.#onTime(ch));
     ch.on("durationchange", () => this.#onTime(ch));
     ch.on("ended", () => this.#onEnded(ch));
+    if (this.host.watchMedia) {
+      for (const type of ["durationchange", "play", "pause", "seeked", "ratechange"]) ch.on(type, () => this.#mediaEvent(ch, type));
+    }
     return ch;
+  }
+
+  // A file that will not open is left out of this queue, and the queue moves on.
+  #openFailed(ch) {
+    if (ch.dead) return;
+    this.unreadable.add(ch.queueIndex);
+    this.host.openFailed?.(ch.song);
+    this.#run(() => {
+      if (ch.dead) return;
+      if (ch === this.next) {
+        ch.destroy();
+        this.next = null;
+        this.#prepareNext();
+      } else if (ch === this.current) {
+        const t = this.#adjacent(this.pos, 1);
+        if (t === null) this.#endQueue();
+        else this.#goTo(t);
+      }
+    });
+  }
+
+  // The system can pause an element for a phone call or another app.
+  #mediaEvent(ch, type) {
+    if (type === "durationchange" && Number.isFinite(ch.el.duration)) this.host.durationKnown?.(ch.song, ch.el.duration);
+    if (type === "pause" && ch === this.current && this.connected && !this.paused && ch.el.paused && !ch.el.ended) {
+      this.paused = true;
+      for (const f of this.fading) f.channel.el.pause();
+      this.host.changed();
+    }
+    if (ch === this.displayChannel) this.host.mediaEvent?.();
   }
 
   #buildOrder(index) {
@@ -102,6 +138,7 @@ export class Playback {
     const token = ++this.startToken;
     this.cancelStart?.();
     this.queue = songs;
+    this.unreadable = new Set();
     this.index = at;
     this.position = this.shuffle ? 1 : at + 1;
     this.loading = true;
@@ -149,10 +186,16 @@ export class Playback {
   }
 
   #adjacent(pos, dir) {
-    const p = pos + dir;
-    if (p >= 0 && p < this.order.length) return p;
-    if (this.repeat !== "all" || !this.order.length) return null;
-    return dir > 0 ? 0 : this.order.length - 1;
+    let p = pos;
+    for (let tries = this.order.length; tries > 0; tries--) {
+      p += dir;
+      if (p < 0 || p >= this.order.length) {
+        if (this.repeat !== "all") return null;
+        p = dir > 0 ? 0 : this.order.length - 1;
+      }
+      if (!this.unreadable.has(this.order[p])) return p;
+    }
+    return null;
   }
 
   #autoTarget() { return this.repeat === "one" ? this.pos : this.#adjacent(this.pos, 1); }
@@ -193,11 +236,14 @@ export class Playback {
 
   #linger(channel, onDone) {
     const entry = { channel, timer: 0 };
-    entry.timer = setTimeout(() => {
-      this.fading.delete(entry);
+    const finish = () => {
+      if (!this.fading.delete(entry)) return;
+      clearTimeout(entry.timer);
       channel.destroy();
       onDone?.();
-    }, FADE_SECONDS * 1000);
+    };
+    entry.timer = setTimeout(finish, FADE_SECONDS * 1000);
+    this.host.after?.(FADE_SECONDS, finish);
     this.fading.add(entry);
     return entry;
   }
@@ -329,7 +375,7 @@ export class Playback {
     });
   }
 
-  seek(t, trackId) {
+  seek(t, trackId, fast = false) {
     return this.#run(() => {
       if (trackId !== this.trackId || !this.current) return;
       this.#undoCross();
@@ -343,7 +389,8 @@ export class Playback {
           return;
         }
       }
-      ch.el.currentTime = t;
+      if (fast && ch.el.fastSeek) ch.el.fastSeek(t);
+      else ch.el.currentTime = t;
       ch.cutIn();
       this.armed = true;
       this.host.changed();

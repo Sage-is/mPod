@@ -21,7 +21,8 @@ export class ListView {
     if (row.kind === "info") node.classList.add("info");
     else node.setAttribute("role", "option");
     if (row.center) node.classList.add("center");
-    if (row.kind === "toggle") node.classList.add("toggle");
+    if (row.kind === "toggle" || row.shrink) node.classList.add("toggle");
+    if (row.help) node.classList.add("help");
     const title = el("span", "row-title", { dir: "auto" });
     title.textContent = row.text;
     node.append(title);
@@ -30,7 +31,7 @@ export class ListView {
       value.textContent = row.value;
       node.append(value);
     }
-    if (row.kind === "navigate") node.append(el("i", "chev", { "aria-hidden": "true" }));
+    if (row.kind === "navigate" || row.arrow) node.append(el("i", "chev", { "aria-hidden": "true" }));
     return node;
   }
 

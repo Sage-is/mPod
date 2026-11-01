@@ -14,6 +14,7 @@ export const css = `
   text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
 }
+:host([fit]) { height: 100%; overflow: hidden; }
 .wrap {
   display: flex;
   justify-content: center;
@@ -217,13 +218,15 @@ export const css = `
 .list::-webkit-scrollbar-thumb { background: #484647; border: 2px solid transparent; background-clip: padding-box; }
 .row {
   box-sizing: border-box; display: flex; align-items: center; justify-content: space-between;
-  height: 30px; padding: 3px 6px 1px 8px; white-space: nowrap; font-size: 26px; line-height: 1;
+  height: 30px; overflow: clip; padding: 3px 6px 1px 8px; white-space: nowrap; font-size: 26px; line-height: 1;
 }
 .row-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.2px; }
 .title, .row-title, .row-value, .np-artist, .np-album, .marquee { padding-block: .14em; margin-block: -.14em; }
 .row-value { flex: none; font-weight: normal; white-space: nowrap; margin-inline-start: 8px; }
 .row.toggle .row-value { flex: 0 1 auto; min-width: 0; color: #333; overflow: hidden; text-overflow: ellipsis; }
 .row.center .row-title { text-align: center; }
+.row.help { height: 26px; font-size: 17.3333px; }
+.row.help:last-child { height: 30px; margin-top: 12px; font-size: 26px; }
 .chev {
   flex: none; box-sizing: content-box; width: 9px; height: 9px; margin-inline-end: 5px;
   border-block-start: 3px solid #333; border-inline-end: 3px solid #333;
@@ -235,6 +238,15 @@ export const css = `
 .row.selected:not(.info) .chev { border-color: var(--sel-chev); }
 @media (forced-colors: active) {
   .list:focus-visible .row.selected { outline: 2px solid currentColor; outline-offset: -2px; }
+}
+
+.name-pane { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 26px 5px 0; }
+.name-line { display: flex; align-items: center; max-width: 100%; height: 30px; overflow: hidden; white-space: pre; }
+.name-text { padding-block: .14em; margin-block: -.14em; }
+.name-cursor { flex: none; width: 12px; height: 24px; margin-inline-start: 1px; background: var(--ink); }
+.name-letter {
+  box-sizing: border-box; min-width: 42px; height: 30px; padding: 3px 10px 1px; text-align: center; line-height: 26px;
+  background: var(--sel-bg); color: var(--sel-text);
 }
 
 .np { display: flex; flex-direction: column; }

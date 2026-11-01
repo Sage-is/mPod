@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SOURCE = join(here, "pod-screen.glyphs.txt");
-const TARGET = join(here, "..", "src", "pod-screen.ttf");
+const TARGET = join(here, "pod-screen-a2.ttf");
 
 // 26 CSS px is 208 units, so one design pixel of 12 units is exactly 1.5 CSS px: a 30 px row is
 // 20 design pixels. Small units keep every outline delta in one byte.

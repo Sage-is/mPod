@@ -32,10 +32,23 @@ export class AudioGraph {
     this.clickGain.gain.value = 0.3;
     this.clickGain.connect(this.ctx.destination);
     this.clickBuffer = tickBuffer(this.ctx);
+    this.silent = this.ctx.createGain();
+    this.silent.gain.value = 0;
+    this.silent.connect(this.ctx.destination);
     this.nextTime = 0;
     this.waitingSince = null;
     this.unlocking = false;
+    this.onSuspend = null;
     this.ctx.addEventListener("statechange", () => this.#stateChanged());
+  }
+
+  // Calls back on the audio clock, which hidden pages do not throttle.
+  after(seconds, fn) {
+    const tick = this.ctx.createConstantSource();
+    tick.connect(this.silent);
+    tick.onended = () => { tick.disconnect(); fn(); };
+    tick.start();
+    tick.stop(this.ctx.currentTime + seconds);
   }
 
   setVolume(volume) {
@@ -53,7 +66,10 @@ export class AudioGraph {
 
   #stateChanged() {
     const { ctx } = this;
-    if (ctx.state !== "running") return;
+    if (ctx.state !== "running") {
+      if (ctx.state !== "closed") this.onSuspend?.();
+      return;
+    }
     this.nextTime = Math.max(this.nextTime, ctx.currentTime + 0.08);
     if (this.waitingSince === null) return;
     const age = performance.now() - this.waitingSince;
@@ -83,7 +99,11 @@ export class AudioGraph {
 }
 
 export class Channel {
-  constructor(graph, song, queueIndex, pos) {
+  dead = false;
+  ready = null;
+
+  // A linked song has no URL until its file opens. source: { acquire(song), release(song) }
+  constructor(graph, song, queueIndex, pos, source) {
     this.graph = graph;
     this.song = song;
     this.queueIndex = queueIndex;
@@ -91,7 +111,18 @@ export class Channel {
     this.el = new Audio();
     this.el.preload = "auto";
     this.el.crossOrigin = "anonymous";
-    this.el.src = song.previewUrl;
+    if (song.linked) {
+      this.files = source;
+      this.ready = source.acquire(song).then((url) => {
+        if (!this.dead) this.el.src = url;
+      }, (cause) => {
+        const err = new Error(`could not open ${song.name}`, { cause });
+        err.name = "OpenFailed";
+        throw err;
+      });
+    } else {
+      this.el.src = song.previewUrl;
+    }
     this.source = graph.ctx.createMediaElementSource(this.el);
     this.gain = graph.ctx.createGain();
     this.gain.gain.value = 0;
@@ -105,7 +136,7 @@ export class Channel {
     this.listeners.push([type, fn]);
   }
 
-  play() { return this.el.play(); }
+  play() { return this.ready ? this.ready.then(() => this.el.play()) : this.el.play(); }
 
   #fade(values, seconds) {
     const { gain } = this.gain;
@@ -123,6 +154,7 @@ export class Channel {
   }
 
   destroy() {
+    this.dead = true;
     for (const [type, fn] of this.listeners) this.el.removeEventListener(type, fn);
     this.listeners = [];
     this.el.pause();
@@ -130,5 +162,6 @@ export class Channel {
     this.el.load();
     this.source.disconnect();
     this.gain.disconnect();
+    this.files?.release(this.song);
   }
 }

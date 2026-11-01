@@ -9,6 +9,11 @@ process.chdir(join(dirname(fileURLToPath(import.meta.url)), ".."));
 
 export const BASE = "http://127.0.0.1:8432/";
 export { sleep };
+// Spec 32: the library outlives a reload, so a clean start has to remove it too.
+export const CLEAR_STORED = `Promise.all([localStorage.clear(), new Promise((done) => {
+  const r = indexedDB.deleteDatabase("mpod");
+  r.onsuccess = r.onerror = r.onblocked = () => done();
+})]).then(() => 1)`;
 const SCHEME = process.env.SCHEME ?? "dark";
 
 export async function boot() {
@@ -35,6 +40,8 @@ export async function boot() {
   };
   await page.send("Emulation.setEmulatedMedia", { features: [] });
   await page.send("Log.enable");
+  // Spec 34: index.html registers a service worker. No suite may inherit one from the last.
+  await page.send("Storage.clearDataForOrigin", { origin: BASE.slice(0, -1), storageTypes: "service_workers,cache_storage" });
   browser.on((m) => {
     if (m.method === "Runtime.exceptionThrown") logs.push("EXC " + (m.params.exceptionDetails.exception?.description ?? m.params.exceptionDetails.text));
     if (m.method === "Runtime.consoleAPICalled" && ["error", "warning"].includes(m.params.type)) logs.push(m.params.type + " " + m.params.args.map((a) => a.value ?? a.description).join(" "));
@@ -48,7 +55,7 @@ export function driver(page) {
     state: () => page.evaluate("document.querySelector('pod-player').debugState()"),
     fresh: async ({ waitBoot = true, clear = true, before } = {}) => {
       if (clear) {
-        await page.evaluate("localStorage.clear()");
+        await page.evaluate(CLEAR_STORED);
       }
       await page.send("Page.bringToFront");
       if (before) await before();

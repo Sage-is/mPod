@@ -25,9 +25,10 @@ export class RingKeys {
     ringEl.addEventListener("blur", () => this.cancel());
   }
 
-  #action(name, target) {
+  #action(name, scrollTarget) {
     const d = this.device;
     const rtl = d.rtl;
+    const target = scrollTarget === "letter" ? "list" : scrollTarget;
     const scroll = (dir) => ({ type: "scroll", dir });
     const press = (button) => ({ type: "press", button });
     const hold = (button) => ({ type: "hold", button, first: 1000, repeat: button === "menu" ? 0 : 500 });
@@ -128,9 +129,10 @@ export class RingKeys {
       d.modes.scrubStep(a.dir * tier(SEEK_TIERS, held));
       return;
     }
-    const changed = a.target === "list"
-      ? d.nav.move(a.dir * tier(LIST_TIERS, held))
-      : d.modes.volumeStep(a.dir * 5);
+    let changed;
+    if (a.target === "list") changed = d.nav.move(a.dir * tier(LIST_TIERS, held));
+    else if (a.target === "letter") changed = d.nav.move(a.dir);
+    else changed = d.modes.volumeStep(a.dir * 5);
     if (changed) d.click(1);
   }
 
@@ -184,7 +186,7 @@ export class ScreenKeys {
     }
     if (e.key === "Escape") { this.#escapeDown(e); return; }
 
-    if (kind === "list") {
+    if (kind === "list" || kind === "name") {
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         swallow(e);
         d.nav.move(e.key === "ArrowDown" ? 1 : -1);

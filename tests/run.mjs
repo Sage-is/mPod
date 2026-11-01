@@ -8,7 +8,8 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 process.chdir(root);
 const SUITES = ["brick-vectors", "tags-unit", "font-unit", "smoke", "t1-nav", "t2-play", "t3-states", "t4-brick", "t5-misc",
-  "t6-more", "t7-last", "t8-import", "t9-idle-timing", "t10-no-catalogue", "t11-font"];
+  "t6-more", "t7-last", "t8-import", "t9-idle-timing", "t10-no-catalogue", "t11-font",
+  "t12-library", "t13-name", "t14-pwa", "t15-media"];
 const words = process.argv.slice(2);
 const chosen = SUITES.filter((name) => !words.length || words.some((w) => name.includes(w)));
 const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });

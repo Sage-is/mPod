@@ -3,6 +3,7 @@ const SHUFFLE = ["off", "songs"];
 const REPEAT = ["off", "one", "all"];
 const CLICKER = ["on", "off"];
 export const BACKLIGHT_MODES = ["off", "1sec", "2sec", "3sec", "5sec", "always_on"];
+const NAME_MAX = 12;
 
 class SettingsStore {
   listeners = new Set();
@@ -23,7 +24,7 @@ class SettingsStore {
   #defaultBacklight() { return this.media.matches ? "always_on" : "off"; }
 
   #defaults() {
-    return { shuffle: "off", repeat: "off", clicker: "on", volume: 50, backlight: this.#defaultBacklight() };
+    return { shuffle: "off", repeat: "off", clicker: "on", volume: 50, backlight: this.#defaultBacklight(), name: "" };
   }
 
   #read() {
@@ -49,6 +50,7 @@ class SettingsStore {
     if (typeof data.volume === "number" && Number.isFinite(data.volume) && data.volume >= 0 && data.volume <= 100) {
       v.volume = data.volume;
     }
+    if (typeof data.name === "string") v.name = data.name.trim().slice(0, NAME_MAX);
     if (data.backlightChosen === true && BACKLIGHT_MODES.includes(data.backlight)) {
       v.backlight = data.backlight;
       this.chosen = true;
@@ -56,8 +58,9 @@ class SettingsStore {
   }
 
   #write() {
-    const { shuffle, repeat, clicker, volume, backlight } = this.values;
+    const { shuffle, repeat, clicker, volume, backlight, name } = this.values;
     const out = { shuffle, repeat, clicker, volume };
+    if (name) out.name = name;
     if (this.chosen) Object.assign(out, { backlight, backlightChosen: true });
     try {
       localStorage.setItem(KEY, JSON.stringify(out));

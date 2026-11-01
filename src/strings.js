@@ -7,7 +7,7 @@ const DEFAULTS = {
   backlightOff: "Off", backlight1: "1 second", backlight2: "2 seconds", backlight3: "3 seconds",
   backlight5: "5 seconds", backlightAlways: "Always On",
   cancel: "Cancel", reset: "Reset",
-  aboutSongs: "Songs", capacity: "Capacity", available: "Available", version: "Version",
+  aboutSongs: "Songs", capacity: "Capacity", available: "Available", library: "Library", version: "Version",
   position: "{index} of {total}",
   shuffleOn: "Shuffle on", repeatOne: "Repeat one", repeatAll: "Repeat all",
   shuffleRepeatOne: "Shuffle on, Repeat one", shuffleRepeatAll: "Shuffle on, Repeat all",
@@ -18,6 +18,10 @@ const DEFAULTS = {
   importRow: "Import", addFolder: "Add Folder", addPlaylists: "Add Playlists", library: "Library",
   libraryAll: "All", libraryImported: "Imported", importedSongs: "Songs", skipped: "Skipped",
   clearImported: "Clear Imported", unknownArtist: "Unknown Artist", unknownAlbum: "Unknown Album",
+  reconnect: "Reconnect", rescan: "Rescan", folders: "Folders", remove: "Remove", missing: "Missing",
+  noFolders: "No Folders", lastsUntilReload: "Lasts until reload", noMusicYet: "No music yet",
+  chooseAddFolder: "Choose Add Folder", toLinkMusic: "to link your music.",
+  name: "Name", delete: "Delete", done: "Done", space: "Space",
 };
 
 export class Strings {
@@ -74,6 +78,10 @@ export class Strings {
 
   number(n) { return this.#number({}).format(n); }
   size(gb) { return this.#number({ style: "unit", unit: "gigabyte" }).format(gb); }
+  bytes(n) {
+    const [unit, scale] = n < 1e9 ? ["megabyte", 1e6] : ["gigabyte", 1e9];
+    return this.#number({ style: "unit", unit, maximumFractionDigits: 1 }).format(n / scale);
+  }
   percent(volume) { return this.#number({ style: "percent" }).format(volume / 100); }
 
   time(seconds) {

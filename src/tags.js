@@ -2,12 +2,12 @@ const WINDOW = 65536;
 const MAX_TEXT = 1 << 20;
 const MAX_UNSYNC_TAG = 1 << 24;
 
-const ascii = (b, at, n) => String.fromCharCode(...b.subarray(at, at + n));
+export const ascii = (b, at, n) => String.fromCharCode(...b.subarray(at, at + n));
 const be16 = (b, at) => (b[at] << 8) | b[at + 1];
-const be32 = (b, at) => b[at] * 16777216 + ((b[at + 1] << 16) | (b[at + 2] << 8) | b[at + 3]);
-const syncsafe = (b, at) => (b[at] << 21) | (b[at + 1] << 14) | (b[at + 2] << 7) | b[at + 3];
+export const be32 = (b, at) => b[at] * 16777216 + ((b[at + 1] << 16) | (b[at + 2] << 8) | b[at + 3]);
+export const syncsafe = (b, at) => (b[at] << 21) | (b[at + 1] << 14) | (b[at + 2] << 7) | b[at + 3];
 
-class FileWindow {
+export class FileWindow {
   constructor(file) { this.file = file; this.start = 0; this.data = null; }
 
   async bytes(offset, length) {
@@ -24,7 +24,7 @@ class FileWindow {
 
 const memory = (data) => ({ bytes: async (offset, length) => data.subarray(offset, offset + length) });
 
-function removeUnsync(b) {
+export function removeUnsync(b) {
   const out = new Uint8Array(b.length);
   let n = 0;
   for (let i = 0; i < b.length; i++) {
@@ -48,10 +48,11 @@ function decodeId3Text(b) {
 }
 
 const FRAMES = {
-  2: { TT2: "title", TP1: "artist", TAL: "album", TRK: "track" },
-  3: { TIT2: "title", TPE1: "artist", TALB: "album", TRCK: "track" },
+  2: { TT2: "title", TP1: "artist", TAL: "album", TRK: "track", TCO: "genre" },
+  3: { TIT2: "title", TPE1: "artist", TALB: "album", TRCK: "track", TCON: "genre" },
 };
 FRAMES[4] = FRAMES[3];
+const PICTURE_FRAME = { 2: "PIC", 3: "APIC", 4: "APIC" };
 
 async function readId3(win) {
   const h = await win.bytes(0, 10);
@@ -79,8 +80,8 @@ async function readId3(win) {
   const headerSize = major === 2 ? 6 : 10;
   const idSize = major === 2 ? 3 : 4;
   const tags = {};
-  let left = 4;
-  while (left > 0 && pos + headerSize <= limit) {
+  let left = 5;
+  while ((left > 0 || !tags.art) && pos + headerSize <= limit) {
     const f = await src.bytes(pos, headerSize);
     if (f.length < headerSize || f[0] === 0) break;
     const id = ascii(f, 0, idSize);
@@ -90,6 +91,7 @@ async function readId3(win) {
     else if (major === 3 || f[4] & 0x80 || f[5] & 0x80 || f[6] & 0x80 || f[7] & 0x80) size = be32(f, 4);
     else size = syncsafe(f, 4);
     const field = wanted[id];
+    if (id === PICTURE_FRAME[major] && size > 0) tags.art = true;
     if (field && !tags[field] && size > 0 && size <= MAX_TEXT) {
       const value = await frameText(src, pos + headerSize, size, major, major === 2 ? 0 : be16(f, 8), tagUnsync);
       if (value) { tags[field] = value; left -= 1; }
@@ -115,7 +117,7 @@ async function frameText(src, at, size, major, flags, tagUnsync) {
   return decodeId3Text(unsync ? removeUnsync(raw) : raw);
 }
 
-async function* atoms(win, start, end) {
+export async function* atoms(win, start, end) {
   let pos = start;
   while (pos + 8 <= end) {
     const h = await win.bytes(pos, 16);
@@ -135,16 +137,17 @@ async function* atoms(win, start, end) {
   }
 }
 
-async function child(win, parent, type) {
+export async function child(win, parent, type) {
   for await (const a of atoms(win, parent.start, parent.end)) if (a.type === type) return a;
   return null;
 }
 
-const ITEMS = { "©nam": "title", "©ART": "artist", aART: "albumArtist", "©alb": "album", trkn: "track" };
+const ITEMS = { "©nam": "title", "©ART": "artist", aART: "albumArtist", "©alb": "album", trkn: "track", "©gen": "genre" };
 
 async function readIlst(win, ilst) {
   const tags = {};
   for await (const item of atoms(win, ilst.start, ilst.end)) {
+    if (item.type === "covr") tags.art = true;
     const field = ITEMS[item.type];
     if (!field) continue;
     const data = await child(win, item, "data");
@@ -163,21 +166,46 @@ async function readIlst(win, ilst) {
   return tags;
 }
 
-async function readMp4(win, fileSize) {
+export async function findIlst(win, fileSize) {
   const moov = await child(win, { start: 0, end: fileSize }, "moov");
-  if (!moov) return {};
+  if (!moov) return null;
   const udta = await child(win, moov, "udta");
   const meta = (udta && await child(win, udta, "meta")) ?? await child(win, moov, "meta");
-  if (!meta) return {};
+  if (!meta) return null;
   const probe = await win.bytes(meta.start + 4, 4);
-  const box = { start: meta.start + (ascii(probe, 0, 4) === "hdlr" ? 0 : 4), end: meta.end };
-  const ilst = await child(win, box, "ilst");
+  return child(win, { start: meta.start + (ascii(probe, 0, 4) === "hdlr" ? 0 : 4), end: meta.end }, "ilst");
+}
+
+async function readMp4(win, fileSize) {
+  const ilst = await findIlst(win, fileSize);
   return ilst ? readIlst(win, ilst) : {};
+}
+
+const FLAC_PICTURE = 6;
+
+export async function* flacBlocks(win, fileSize) {
+  let pos = 4;
+  while (pos + 4 <= fileSize) {
+    const h = await win.bytes(pos, 4);
+    if (h.length < 4) return;
+    const length = (h[1] << 16) | (h[2] << 8) | h[3];
+    yield { type: h[0] & 0x7f, start: pos + 4, length };
+    if (h[0] & 0x80) return;
+    pos += 4 + length;
+  }
+}
+
+async function flacHasPicture(win, fileSize) {
+  for await (const block of flacBlocks(win, fileSize)) if (block.type === FLAC_PICTURE) return true;
+  return false;
 }
 
 function normalise(tags) {
   const track = typeof tags.track === "string" ? Number.parseInt(tags.track, 10) : tags.track;
-  return { ...tags, track: track > 0 ? track : undefined };
+  const out = { ...tags, track: track > 0 ? track : undefined };
+  if (!out.art) delete out.art;
+  if (out.genre) out.genre = out.genre.replace(/^(\(\d+\))+/, "").trim() || undefined;
+  return out;
 }
 
 // Rejects only when the file itself cannot be read. A damaged tag yields no tags.
@@ -189,6 +217,7 @@ export async function readTags(file, extension) {
     if (extension === "m4a" || extension === "mp4" || ascii(head, 4, 4) === "ftyp") {
       return normalise(await readMp4(win, file.size));
     }
+    if (ascii(head, 0, 4) === "fLaC") return normalise({ art: await flacHasPicture(win, file.size) });
   } catch {
     return {};
   }

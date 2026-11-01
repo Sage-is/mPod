@@ -1,4 +1,5 @@
 import { BACKLIGHT_MODES } from "./settings.js";
+import { VERSION } from "./version.js";
 
 const BACKLIGHT_LABELS = {
   off: "backlightOff", "1sec": "backlight1", "2sec": "backlight2", "3sec": "backlight3",
@@ -9,9 +10,10 @@ const REPEAT_VALUES = { off: "off", one: "repeatOneValue", all: "repeatAllValue"
 const CLICKER_VALUES = { on: "on", off: "off" };
 const NEXT = { shuffle: { off: "songs", songs: "off" }, repeat: { off: "one", one: "all", all: "off" }, clicker: { on: "off", off: "on" } };
 
-const KINDS = { nowPlaying: "now-playing", brick: "game" };
+const KINDS = { nowPlaying: "now-playing", brick: "game", name: "name" };
 const identity = (entry) => `${entry.key}|${entry.ctx ?? ""}`;
 const SONG_LISTS = new Set(["songs", "playlist", "artist"]);
+const HELP_LISTS = new Set(["playlists", "artists", "songs"]);
 
 export class Navigator {
   stack = [{ key: "root" }];
@@ -22,6 +24,7 @@ export class Navigator {
   memory = new Map();
   source = null;
   lastQueue = null;
+  helpEntry = null;
 
   constructor(device) { this.device = device; }
 
@@ -41,6 +44,14 @@ export class Navigator {
       ? songs.map((song) => ({ id: song.id, kind: "play", text: song.name, value: null, song }))
       : [none]);
 
+    if (HELP_LISTS.has(entry.key) && d.showsHelp) {
+      const line = (id, key) => ({ id, kind: "info", text: s.t(key), value: null, center: true, help: true });
+      return [
+        line("help-1", "noMusicYet"), line("help-2", "chooseAddFolder"), line("help-3", "toLinkMusic"),
+        { id: "add-folder", kind: "action", action: "pickFolder", text: s.t("addFolder"), value: null, center: true, help: true },
+      ];
+    }
+
     switch (entry.key) {
       case "root": {
         const rows = [
@@ -50,6 +61,9 @@ export class Navigator {
           nav("settings", s.t("settings"), { key: "settings" }),
         ];
         if (d.playback.queue.length) rows.push(nav("nowPlaying", s.t("nowPlaying"), { key: "nowPlaying" }));
+        if (d.importer?.waiting.size) {
+          rows.unshift({ id: "reconnect", kind: "action", action: "reconnect", arrow: true, text: s.t("reconnect"), value: null });
+        }
         return rows;
       }
       case "settings": {
@@ -61,18 +75,30 @@ export class Navigator {
           { id: "clicker", kind: "toggle", text: s.t("clicker"), value: s.t(CLICKER_VALUES[v.clicker]), field: "clicker" },
           nav("reset", s.t("resetAll"), { key: "reset" }),
         ];
-        if (d.importEnabled) rows.splice(-1, 0, nav("import", s.t("importRow"), { key: "import" }));
+        if (d.importEnabled) {
+          rows.splice(-1, 0, nav("import", s.t("importRow"), { key: "import" }));
+          rows.unshift({ ...nav("name", s.t("name"), { key: "name" }), value: d.deviceName, shrink: true });
+        }
         return rows;
       }
       case "import":
         return d.importer?.rows() ?? [];
+      case "folders":
+        return d.importer?.folderRows() ?? [];
+      case "folder":
+        return d.importer?.folderActions(entry.ctx) ?? [];
       case "about":
         return [
-          { id: "pod", kind: "info", text: "Pod", value: null, center: true },
+          { id: "pod", kind: "info", text: d.deviceName, value: null, center: true },
           { id: "songs", kind: "info", text: s.t("aboutSongs"), value: s.number(c.songs.length) },
-          { id: "capacity", kind: "info", text: s.t("capacity"), value: s.size(9.2) },
-          { id: "available", kind: "info", text: s.t("available"), value: s.size(4.5) },
-          { id: "version", kind: "info", text: s.t("version"), value: "2644.1.0" },
+          ...(d.isTestPage ? [
+            { id: "capacity", kind: "info", text: s.t("capacity"), value: s.size(9.2) },
+            { id: "available", kind: "info", text: s.t("available"), value: s.size(4.5) },
+            { id: "version", kind: "info", text: s.t("version"), value: "2644.1.0" },
+          ] : [
+            { id: "library", kind: "info", text: s.t("library"), value: s.bytes(d.importer.librarySize) },
+            { id: "version", kind: "info", text: s.t("version"), value: VERSION },
+          ]),
         ];
       case "backlight":
         return BACKLIGHT_MODES.map((mode) => ({ id: mode, kind: "choice", text: s.t(BACKLIGHT_LABELS[mode]), value: null, mode }));
@@ -107,8 +133,11 @@ export class Navigator {
     const s = this.device.strings;
     const c = this.device.catalogue;
     switch (entry.key) {
-      case "root": return "Pod";
+      case "root": return this.device.deviceName;
       case "settings": return s.t("settings");
+      case "name": return s.t("name");
+      case "folders": return s.t("folders");
+      case "folder": return this.device.importer?.folderName(entry.ctx) ?? s.t("folders");
       case "about": return s.t("about");
       case "backlight": return s.t("backlightTimer");
       case "reset": return s.t("resetAll");
@@ -126,8 +155,25 @@ export class Navigator {
   get title() { return this.titleOf(this.top); }
 
   clampSelection() {
-    const last = this.rows.length - 1;
+    const rows = this.rows;
+    if (rows[0]?.help) {
+      this.helpEntry = this.top;
+      this.selection = rows.length - 1;
+      return;
+    }
+    if (this.helpEntry === this.top) {
+      this.helpEntry = null;
+      this.selection = 0;
+    }
+    const last = rows.length - 1;
     if (this.selection > last) this.selection = Math.max(0, last);
+  }
+
+  // Root's rows shift by one when Reconnect comes or goes. Stay on the same row.
+  reconnectChanged(shown) {
+    if (this.top.key !== "root" || this.device.loading) return;
+    this.selection = Math.max(0, this.selection + (shown ? 1 : -1));
+    this.device.invalidate();
   }
 
   // Queue match
@@ -144,7 +190,7 @@ export class Navigator {
   // Memory
 
   #save(entry, rows) {
-    if (entry.key === "reset") return;
+    if (entry.key === "reset" || entry.key === "folder") return;
     const row = rows[this.selection];
     if (row) this.memory.set(identity(entry), { id: row.id, index: this.selection });
   }
@@ -160,6 +206,8 @@ export class Navigator {
     if (entry.key === "backlight") {
       return Math.max(0, rows.findIndex((r) => r.mode === this.device.settings.values.backlight));
     }
+    if (entry.key === "folder") return Math.max(0, rows.findIndex((r) => r.kind === "cancel"));
+    if (rows[0]?.help) return rows.length - 1;
     const current = this.currentRow(rows);
     if (current >= 0) return current;
     return Math.max(0, this.#recall(entry, rows));
@@ -184,8 +232,9 @@ export class Navigator {
   // Movement
 
   move(delta) {
+    if (this.kind === "name") return this.device.view.turn(delta);
     const rows = this.rows;
-    if (!rows.length) return false;
+    if (!rows.length || rows[0].help) return false;
     const next = Math.min(rows.length - 1, Math.max(0, this.selection + delta));
     if (next === this.selection) return false;
     this.selection = next;
@@ -269,7 +318,22 @@ export class Navigator {
     return this.rowsFor(target).filter((r) => r.kind === "play").map((r) => r.song);
   }
 
+  // A song from a folder that lost permission asks inside this same press. If that is
+  // refused, the list stays and Reconnect stays on Root.
+  #whenAllowed(songs, chosen, play) {
+    const asked = this.device.importer?.permissionFor(songs, chosen);
+    if (!asked) { play(); return; }
+    const entry = this.top;
+    asked.then((allowed) => { if (allowed && this.top === entry) play(); });
+  }
+
   #playRow(rows, index) {
+    const row = rows[index];
+    const plays = rows.filter((r) => r.kind === "play").map((r) => r.song);
+    this.#whenAllowed(this.currentRow(rows) === index ? [] : plays, row.song, () => this.#startRow(rows, index));
+  }
+
+  #startRow(rows, index) {
     const d = this.device;
     const row = rows[index];
     if (this.currentRow(rows) === index) {
@@ -296,7 +360,8 @@ export class Navigator {
         else d.settings.set(row.field, NEXT[row.field][d.settings.values[row.field]]);
         break;
       case "action":
-        d.importer[row.action]();
+        d.importer[row.action](row.arg);
+        if (row.pop) this.pop();
         break;
       case "choice":
         d.settings.chooseBacklight(row.mode);
@@ -324,9 +389,11 @@ export class Navigator {
     if (row?.kind === "navigate" && SONG_LISTS.has(row.target.key)) {
       const songs = this.songsOf(row.target);
       if (songs.length) {
-        this.setSource(row.target);
-        d.playback.start(songs);
-        this.push({ key: "nowPlaying" });
+        this.#whenAllowed(songs, null, () => {
+          this.setSource(row.target);
+          d.playback.start(songs);
+          this.push({ key: "nowPlaying" });
+        });
         return;
       }
     }

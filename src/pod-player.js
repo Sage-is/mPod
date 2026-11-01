@@ -7,7 +7,9 @@ import { ICONS } from "./glyphs.js";
 import { Importer } from "./importer.js";
 import { RingKeys, ScreenKeys } from "./keys.js";
 import { ListView } from "./list-view.js";
+import { MediaControls } from "./media-session.js";
 import { Modes } from "./modes.js";
+import { NameView } from "./name-view.js";
 import { Navigator } from "./navigator.js";
 import { NowPlayingView, timeStrings } from "./now-playing-view.js";
 import { Playback } from "./playback.js";
@@ -24,6 +26,11 @@ const BOOT_MAX = 10000;
 const IDLE_JUMP = 10000;
 const VOLUME_SAVE = 1000;
 const REPEAT_MODES = { off: "none", one: "one", all: "all" };
+const HAPTIC_GAP = 40;
+const BODY_WIDTH = 421;
+const BODY_HEIGHT = 698;
+const FIT_MARGIN = 4;
+const FIT_MIN = 0.45;
 
 let instances = 0;
 let fontRegistered = false;
@@ -68,6 +75,11 @@ export class PodPlayer extends HTMLElement {
   rtl = false;
   connected = false;
   usesCatalogue = false;
+  libraryLoading = false;
+  media = null;
+  fitScale = null;
+  fitObserver = null;
+  lastHaptic = -Infinity;
 
   constructor() {
     super();
@@ -76,10 +88,10 @@ export class PodPlayer extends HTMLElement {
     root.innerHTML = `<style>${css}</style>${template(this.titleId)}`;
     const q = (s) => root.querySelector(s);
     this.parts = {
-      wrap: q(".wrap"), device: q(".device"), screen: q(".screen"), scaled: q(".scaled"),
+      wrap: q(".wrap"), box: q(".box"), device: q(".device"), screen: q(".screen"), scaled: q(".scaled"),
       title: q(".title"), state: q(".state"), brickHead: q(".brick-head"),
       brickBalls: q(".brick-balls"), brickScore: q(".brick-score"),
-      body: q(".body-clip"), boot: q(".boot"), offline: q(".offline"), offlineText: q(".offline p"),
+      body: q(".body-clip"), boot: q(".boot"), bootName: q(".boot span"), offline: q(".offline"), offlineText: q(".offline p"),
       live: q(".live"), wheel: q(".wheel"), ring: q(".ring"),
     };
     this.buttonEls = { menu: q(".btn.menu"), back: q(".btn.back"), forward: q(".btn.forward"), play: q(".btn.play"), select: q(".select") };
@@ -118,11 +130,17 @@ export class PodPlayer extends HTMLElement {
     const device = this;
     return {
       get graph() { return device.graph; },
-      changed: () => { this.modes.capToDuration(); this.invalidate(); },
+      changed: () => { this.modes.capToDuration(); this.media?.sync(); this.invalidate(); },
       queueChanged: () => this.nav.queueChanged(),
       trackChanged: () => this.modes.trackChanged(),
       queueEnded: (last) => this.nav.queueEnded(last),
       applyVolume: () => this.graph.setVolume(this.volume),
+      get files() { return device.importer; },
+      get watchMedia() { return device.importEnabled; },
+      openFailed: (song) => this.importer?.openFailed(song),
+      durationKnown: (song, seconds) => this.importer?.noteDuration(song, seconds),
+      mediaEvent: () => this.media?.sync(true),
+      get after() { return device.importEnabled ? (seconds, fn) => device.graph?.after(seconds, fn) : null; },
     };
   }
 
@@ -145,12 +163,34 @@ export class PodPlayer extends HTMLElement {
 
     this.usesCatalogue = this.hasAttribute("catalogue-url");
     this.offline = this.usesCatalogue && !navigator.onLine;
+    this.#startLibrary();
     if (!this.offline) this.#startBoot();
+    if (this.hasAttribute("fit")) this.#startFit();
     this.#render();
+  }
+
+  #startLibrary() {
+    const started = this.importer?.start();
+    if (!started) return;
+    if (!this.media) {
+      this.media = new MediaControls(this);
+      this.media.start();
+      this.graph.onSuspend = () => this.media?.suspended();
+    }
+    this.libraryLoading = true;
+    started.finally(() => {
+      this.libraryLoading = false;
+      this.#updateBoot();
+      this.invalidate();
+    });
   }
 
   disconnectedCallback() {
     this.connected = false;
+    this.fitObserver?.disconnect();
+    this.fitObserver = null;
+    this.media?.stop();
+    this.media = null;
     if (this.saveTimer) this.#flushVolume();
     this.unsubscribe?.();
     this.buttons.detach();
@@ -175,6 +215,7 @@ export class PodPlayer extends HTMLElement {
 
   attributeChangedCallback(name, _, value) {
     if (name === "backlit") this.backlitOverride = value;
+    if (name === "import" && value !== null && this.connected) this.#startLibrary();
     this.invalidate();
   }
 
@@ -184,8 +225,15 @@ export class PodPlayer extends HTMLElement {
 
   get importer() {
     if (!this.importEnabled) return null;
-    return (this.importerInstance ??= new Importer(this));
+    this.importerInstance ??= new Importer(this);
+    this.importerInstance.start();
+    return this.importerInstance;
   }
+
+  get isTestPage() { return this.hasAttribute("catalogue-url"); }
+  get defaultName() { return this.isTestPage ? "Pod" : "mPod"; }
+  get deviceName() { return this.settings.values.name || this.defaultName; }
+  get showsHelp() { return !this.isTestPage && !!this.importer?.nothing; }
 
   get catalogue() {
     return this.importer?.view(this.baseCatalogue) ?? this.baseCatalogue;
@@ -195,7 +243,10 @@ export class PodPlayer extends HTMLElement {
     return this.importer?.add(Array.from(files ?? [])) ?? Promise.resolve();
   }
 
-  get settled() { return this.status === "ready" || this.status === "error"; }
+  // Test seam for spec 32: links a directory handle, real or fake, as the picker would.
+  linkFolder(handle) { return this.importer?.link(handle) ?? Promise.resolve(); }
+
+  get settled() { return !this.libraryLoading && (this.status === "ready" || this.status === "error"); }
   get inert() { return this.loading || this.offline; }
 
   #startBoot() {
@@ -259,10 +310,12 @@ export class PodPlayer extends HTMLElement {
     if (this.modes.scrubActive) return "seek";
     const { kind } = this.nav;
     if (kind === "list") return "list";
+    if (kind === "name") return "letter";
     return kind === "now-playing" ? "volume" : "brick";
   }
 
   get deviceScale() {
+    if (this.fitScale !== null) return this.fitScale;
     const width = this.clientWidth;
     if (width >= 440) return 1;
     if (width >= 400) return 0.9;
@@ -305,6 +358,14 @@ export class PodPlayer extends HTMLElement {
   click(count) {
     if (this.settings.values.clicker !== "on" || !this.graph) return;
     for (let i = 0; i < count; i++) this.graph.click();
+    if (this.importEnabled) this.#haptic();
+  }
+
+  #haptic() {
+    const now = performance.now();
+    if (now - this.lastHaptic < HAPTIC_GAP || !navigator.vibrate) return;
+    this.lastHaptic = now;
+    navigator.vibrate(4);
   }
 
   setLiveVolume(value) {
@@ -352,7 +413,7 @@ export class PodPlayer extends HTMLElement {
 
   #idleEligible() {
     const { key } = this.nav.top;
-    return this.playback.playing && !this.inert && key !== "nowPlaying" && key !== "brick";
+    return this.playback.playing && !this.inert && key !== "nowPlaying" && key !== "brick" && key !== "name";
   }
 
   #updateIdle() {
@@ -381,6 +442,7 @@ export class PodPlayer extends HTMLElement {
     if (this.inert) return;
     const { kind } = this.nav;
     if (kind === "list") this.nav.activate();
+    else if (kind === "name") this.view.select();
     else if (kind === "game") this.brick?.select();
     else if (this.modes.volumeActive) this.modes.leaveVolume();
     else if (this.playback.loaded) this.modes.toggleScrub();
@@ -415,7 +477,8 @@ export class PodPlayer extends HTMLElement {
 
   showTop(dir, takeFocus) {
     const { kind } = this.nav;
-    const view = kind === "list" ? new ListView(this) : kind === "now-playing" ? new NowPlayingView(this) : new BrickView(this);
+    const Views = { list: ListView, "now-playing": NowPlayingView, name: NameView, game: BrickView };
+    const view = new Views[kind](this);
     this.brick = view instanceof BrickView ? view : null;
     this.view = view;
     this.#readDirection();
@@ -426,6 +489,22 @@ export class PodPlayer extends HTMLElement {
     this.invalidate();
   }
 
+  // Product page only: the device fits the space it is given, width and height.
+  #startFit() {
+    const fit = () => {
+      const width = this.clientWidth;
+      const height = this.clientHeight;
+      if (!width || !height) return;
+      const room = Math.min((width - FIT_MARGIN * 2) / BODY_WIDTH, (height - FIT_MARGIN * 2) / BODY_HEIGHT);
+      this.fitScale = Math.max(FIT_MIN, Math.min(1, room));
+      this.parts.scaled.style.scale = this.fitScale;
+      this.parts.box.style.marginTop = `${Math.max(FIT_MARGIN, (height - 692 * this.fitScale) / 2)}px`;
+    };
+    fit();
+    this.fitObserver = new ResizeObserver(fit);
+    this.fitObserver.observe(this);
+  }
+
   #render() {
     const { nav, playback: pb, parts, strings: s, buttonEls } = this;
     const screen = parts.screen;
@@ -433,6 +512,9 @@ export class PodPlayer extends HTMLElement {
     screen.classList.toggle("lit", this.backlit);
     screen.classList.toggle("inert", inert);
     parts.boot.hidden = !(this.loading && !this.offline);
+    const name = this.deviceName;
+    if (parts.bootName.textContent !== name) parts.bootName.textContent = name;
+    if (this.importEnabled && document.title !== name) document.title = name;
     parts.offline.hidden = !this.offline;
     parts.offlineText.textContent = s.t("offline");
 
@@ -482,12 +564,16 @@ export class PodPlayer extends HTMLElement {
   debugState() {
     const { nav, playback: pb, modes, strings: s, settings } = this;
     const top = nav.kind;
-    const view = this.offline ? "offline" : this.loading ? "loading" : top === "list" ? "list" : top === "now-playing" ? "now-playing" : "brick";
-    const rows = top === "list"
-      ? nav.rows.map((row, i) => ({
-        text: row.text, value: row.value, selected: i === nav.selection, arrow: row.kind === "navigate",
-      }))
-      : [];
+    const SCREENS = { list: "list", "now-playing": "now-playing", name: "name", game: "brick" };
+    const view = this.offline ? "offline" : this.loading ? "loading" : SCREENS[top];
+    let rows = [];
+    if (top === "list") {
+      rows = nav.rows.map((row, i) => ({
+        text: row.text, value: row.value, selected: i === nav.selection, arrow: row.kind === "navigate" || !!row.arrow,
+      }));
+    } else if (top === "name" && this.view instanceof NameView) {
+      rows = [{ text: this.view.draft, value: this.view.letterLabel, selected: true, arrow: false }];
+    }
     let nowPlaying = null;
     if (top === "now-playing") {
       const song = pb.song;

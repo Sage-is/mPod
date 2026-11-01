@@ -1,64 +1,48 @@
 # Spec gaps
 
-## Apparently wrong or contradictory
+Specs 00 to 31 are in `SPEC-GAPS-00-31.md`, moved there unchanged to keep each file under the size limit.
 
-- **19:** "five setups", but six rows. All six matched.
-- **09:** selected chevron has two unlit colours. Used `#b9b9b3`.
-- **10 / 12:** queue end clears the queue before popping, so arrival gives row 0, yet the list "comes back on the row of the last song". The pop matches a snapshot of the ended queue.
-- **13:** heights total 181 in a 180 body. The bar shrinks to 14.
-- **25:** battery works out at 33 × 16.8, not "near 31 × 17". Built as drawn.
-- **27 / 26:** ring press transition listed, no ring active look. Nothing changes.
+## Library (32)
 
-## Ambiguous
+- Rescan and Folders follow Add Playlists. Session-only hides both: nothing to rescan.
+- Rescan's value counts files checked, since the total is unknown during the walk.
+- Reconnect is selected if it appears during boot. Later, the selection stays on its row.
+- All waiting folders are asked within the press. If a browser refuses a later prompt, the row stays for another tap.
+- Moved means same size, title, artist, album and track. Untagged files take those from the path, so most moves become delete plus add.
+- A changed file keeps its identity and forgets its duration.
+- Only a failure at the folder's top reads Missing. A deeper failure stops that scan and drops nothing.
+- Skipped survives restart. A failed open counts once per track, and the queue leaves that track out. A file that opens but will not decode still follows 12.
+- `importFiles` tracks have no file after a reload, so playing one counts as a failed open. Importing it again restores it.
+- Help needs `import` and no `catalogue-url`. A bare element and a failed catalogue keep No Music. The wheel does not move on help.
+- Boot waits for the stored library, inside the 2 s and 10 s gate.
+- Seam: `linkFolder(handle)`. A fake sets `testId`, found again in `window.__podHandles`, because functions cannot be stored.
+- Genre reads `TCON`, `TCO` and `©gen`. Numeric `(17)` is stripped, not mapped.
 
-- **27:** "same direction": the leaving node's exit side equals the incoming entry side, a reversal. Push after push starts at full width.
-- **12:** "left from its Now Playing row" outlasts a pop, so a queue ending there gives row 0. Reached by rotation, it clamps.
-- **12:** while the display lags, follow, queue match and memory use the displayed index.
-- **11:** skip in an unshown crossfade: Forward steps from the internal index, Back from the displayed one.
-- **11:** paused during a crossfade, the 2 s cleanup still runs, so the display can flip.
-- **09 / 20:** "side padding" sits outside the scroller: list 263 wide, selected row 251.
-- **13:** right-to-left: strip panels follow page direction.
-- **22:** "Forced focus" applies under `forced-colors: active` only.
-- **26:** glint mask and blur share one element, so the mask edge stays sharp.
+## Name (33)
 
-## Silent
+- The boot word and About's first row follow the name, replacing 23's fixed `Pod`.
+- The ring starts at `A`, and shows the space as `Space`. It has no acceleration.
+- Enter means Done at any focus, even on the ring, where 05 says Select. Right stays Select.
+- An unchanged default stores nothing, and characters outside the ring are ignored.
+- The idle jump is blocked on Name, or a pause would lose the draft.
+- `debugState()` on Name: view `name`, one row of draft and letter.
+- The document title changes only with `import`.
 
-- **03:** under 4.5° does not enter volume mode. Both accumulators zero together.
-- **05:** ring blur cancels a key, even to another wheel element, or scroll repeat sticks.
-- **04 / 16:** the swallowed click after a hold is not activity.
-- **12:** failed play recovers on Play/Pause or Forward.
-- **21:** offline drawing has a cable to offset the -10% shift, 12 px up.
-- **28:** a missing required array is an error state.
+## Installable app (34)
 
-## Unknown, chosen
+- New attribute `fit`, on `index.html` only: scale 0.45 to 1, 4 px margin. Never above 1, for the pixel grid. Below 0.45 the device crops.
+- The buttons' band is 37 px, 18 px at the smallest scale. So with `import`, a still touch on the ring presses the wedge under it, and hold works. A finger starting anywhere that moves 8 px turns the wheel. The test page has neither.
+- Navigation tries the network for 3 s, then the cache. `/` is the test page under `dev/serve.mjs`, so a cache-first page would hijack it. Assets are cache-first, so a new page can briefly meet old assets until the next start.
+- Offline, a deeper URL redirects to the scope, because the page's paths are relative.
+- No `clients.claim`: the first visit runs uncontrolled, and the next start is covered.
+- `dev/serve.mjs` also serves the app at `/app/`. Also added: `apple-touch-icon.png`, `favicon.png`.
 
-- **17:** click: 6 ms, 3.1 kHz sine plus noise, 1.1 ms decay.
-- **26:** grain: 64 px tile, grey 96 to 191, 45% of pixels at alpha 5 to 16.
+## Media controls (35)
 
-## Import (29)
-
-- "Dropped" and "pending" conflict. Playlists re-resolve after each import; no matches hides one, and a later folder can fill it. Entries count as Skipped only once music exists.
-- "Sorted by the existing rules", but 09 says no sorting. All is catalogue, then imports in path order.
-- `track` has no stated use: artist lists run by album, then track.
-- Same artist name, any case, merges in All. Playlists do not.
-- 20,000 is per library and counts audio files only. Path order is numeric-aware.
-- Dotted files are not Skipped; zero-byte files are. A damaged tag falls back to the path. Undecodable audio shows only on play, as in 12.
-- Same path, size and date is one track.
-- EXTINF replaces only a path-derived title. A suffix tie takes the first in path order. Remote URLs never match.
-- Library flips at the first track read. Clear resets Skipped; the next import flips it again.
-- Import rows have no arrow. `importFiles` without the attribute does nothing.
-- 20,000 rows take over a second to open.
-
-## No catalogue (30)
-
-- "No offline overlay" read strictly: without `catalogue-url` it never shows, even offline, and playback continues.
-- Read at connect. `catalogue-url=""` counts as set, so it stays an error.
-- `index.html` needs a server: modules do not load from `file://`.
-
-## Pixel font (31)
-
-- Cites the boot gate in 02; it is in 21.
-- One design pixel is 1.5 CSS px, so a row is 20. The 20 and 13 px text of 13 and 21 runs at 17.33 px, one CSS px, so pixels stay whole.
-- x-height 8 cannot hold three 2-pixel bars and open counters: `a`, `e` have a 1-pixel middle bar.
-- `Backlight Timer`, `Reset All Settings` end in an ellipsis in the bar, and on rows beside a scrollbar.
-- Offline text wraps to two lines. Hard edges need `-webkit-font-smoothing: none`, which only macOS honours.
+- All of it needs `import`, so the comparison page cannot change.
+- The two likely causes are built against, but the Fold's missing art and seek bar are not reproduced here. Only the phone can confirm the fix.
+- Chrome fetches the placeholder icon for tracks with no art. It is our own file and says nothing about the music, so 29's "no network requests" still holds.
+- A lock screen skip leaves scrub, or a 5 s scrub would drop it.
+- A system pause or a suspended context shows paused.
+- Art is centre-cropped to a square. Folder image names match in any case, in the listed order.
+- Chrome has no `fastSeek`, so `seekto` falls back to `currentTime`.

@@ -101,6 +101,17 @@ export class Buttons {
     this.#begin(name, false);
   }
 
+  // Touch on the ring: the wedge under the finger behaves as a press of that button.
+  ringHold(name) {
+    if (HOLDS[name] && !this.held && this.holdEnabled(name)) this.#begin(name, false);
+  }
+
+  ringRelease(name) {
+    const fired = this.held?.name === name && this.held.fired;
+    if (this.held?.name === name) this.cancel();
+    return fired;
+  }
+
   #release(name) { if (this.held?.name === name) this.cancel(); }
   #abandon(name) { if (this.held?.name === name) this.cancel(); }
 

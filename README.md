@@ -1,6 +1,6 @@
 # mPod
 
-A pocket music player for your own music, as an installable web app. Private project: not for release until the items below are cleared.
+A pocket music player for your own music, as an installable web app. The code is private.
 
 ## Run it
 
@@ -8,24 +8,24 @@ A pocket music player for your own music, as an installable web app. Private pro
 python3 -m http.server 8080
 ```
 
-Then open `http://127.0.0.1:8080/`. Folder access needs HTTPS or localhost.
+Then open `http://127.0.0.1:8080/`. Folder access, the service worker and install need HTTPS or localhost.
+
+`make publish` rebuilds the generated files, runs the checks, writes `dist/` and puts it live. `dist/` is plain static files, so any host can serve it. `node dev/draw-icons.mjs` redraws the icons.
 
 ## Layout
 
-- `index.html`: the page people open.
+- `index.html`, `manifest.webmanifest`, `sw.js`, `sw-precache.js`, `icons/`: the page people open and what installs it.
 - `src/`: the `pod-player` web component. Plain ES modules, no build step, no dependencies.
 - `dev/`: dev server, test page, and a small Chrome client.
 - `docs/spec/`: the specification this code is built from.
-- `docs/SPEC-GAPS.md`: where the spec was silent or wrong, and what was chosen.
+- `docs/SPEC-GAPS.md`, `docs/SPEC-GAPS-00-31.md`: where the spec was silent or wrong, and what was chosen.
 - `fonts/`: our own drawn pixel font and its builder.
 - `fixtures/`: an invented catalogue and test tones.
 - `tests/`: browser and unit suites. See `tests/README.md`.
 
-## Before anyone outside uses it
+## Release status
 
-- `src/pod-screen.ttf` is ChicagoFLF 2.1 and is not cleared. See `docs/FONT.md`.
-- `src/styles.js` needs reworking to reduce overlap with the original's CSS.
-- The name needs a trademark check, and the look needs legal review.
+Alexander accepted the risk on 2026-11-01. The font, the CSS overlap, the name and the look ship as they are, and a complaint means taking the site down. `src/pod-screen.ttf` is ChicagoFLF 2.1: see `docs/FONT.md`.
 
 `tests/font-unit.mjs` and `tests/t11-font.mjs` check for our own drawn font, so they fail while ChicagoFLF is in place.
 

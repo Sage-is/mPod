@@ -8,11 +8,18 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const port = Number(process.argv[2] ?? 8431);
 const types = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
-  ".json": "application/json", ".wav": "audio/wav", ".woff2": "font/woff2", ".ttf": "font/ttf", ".png": "image/png", ".svg": "image/svg+xml" };
+  ".json": "application/json", ".wav": "audio/wav", ".woff2": "font/woff2", ".ttf": "font/ttf", ".png": "image/png", ".svg": "image/svg+xml",
+  ".webmanifest": "application/manifest+json" };
+const ROOT_FILES = new Set(["/index.html", "/sw.js", "/sw-precache.js", "/manifest.webmanifest"]);
 
+// "/" stays the test page. "/app/" is the product at a path of its own, as an install sees it.
 function resolve(path) {
   if (path === "/") return join(root, "dev/host.html");
-  if (path.startsWith("/fixtures/") || path === "/index.html" || path.startsWith("/src/") || path.startsWith("/dev/")) return join(root, normalize(path));
+  if (path === "/app/") return join(root, "index.html");
+  const local = path.startsWith("/app/") ? path.slice(4) : path;
+  if (local.startsWith("/fixtures/") || ROOT_FILES.has(local) || local.startsWith("/src/") || local.startsWith("/icons/") || local.startsWith("/dev/")) {
+    return join(root, normalize(local));
+  }
   return null;
 }
 

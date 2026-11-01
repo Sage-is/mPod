@@ -2,7 +2,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import "./gen-samples.mjs";
-import { BASE, boot, driver, sleep, T, waitFor } from "./h.mjs";
+import { BASE, boot, CLEAR_STORED, driver, sleep, T, waitFor } from "./h.mjs";
 
 const { browser, page, close, logs } = await boot();
 const d = driver(page);
@@ -43,7 +43,7 @@ browser.on((m) => { if (m.method === "Network.requestWillBeSent") urls.push(m.pa
 
 // The product page has no test hook, so wait for the element rather than dataset.ready.
 const open = async (url = PRODUCT, { settle = true } = {}) => {
-  await page.evaluate("localStorage.clear()").catch(() => {});
+  await page.evaluate(CLEAR_STORED).catch(() => {});
   urls.length = 0;
   await page.send("Page.bringToFront");
   await page.send("Page.navigate", { url });
@@ -68,6 +68,12 @@ const pick = async (text) => {
 const back = async (n = 1) => { for (let i = 0; i < n; i++) { await d.key("ArrowLeft"); await sleep(280); } };
 const focusRing = async () => { await d.press("menu"); await sleep(280); };
 const NO_MUSIC = [{ text: "No Music", value: null, selected: true, arrow: false }];
+const HELP = [
+  { text: "No music yet", value: null, selected: false, arrow: false },
+  { text: "Choose Add Folder", value: null, selected: false, arrow: false },
+  { text: "to link your music.", value: null, selected: false, arrow: false },
+  { text: "Add Folder", value: null, selected: true, arrow: false },
+];
 const catalogueRequests = () => urls.filter((u) => /catalogue\.json|\.json(\?|$)/.test(u));
 
 try {
@@ -87,13 +93,14 @@ try {
     console.log(`    menu ${Math.round(ready)} ms after navigation`);
     t.ok("boot timing unchanged, about 2 s", ready >= 2000 && ready < 2700, ready);
     const s = await state();
-    t.eq("normal menu, not offline, not an error", [s.view, s.title, await titles()], ["list", "Pod", ["Playlists", "Artists", "Songs", "Settings"]]);
+    t.eq("normal menu, not offline, not an error", [s.view, s.title, await titles()], ["list", "mPod", ["Playlists", "Artists", "Songs", "Settings"]]);
     t.eq("live text Ready", await page.evaluate(`${root}.querySelector('.live').textContent`), "Ready");
     t.eq("no overlay showing", await page.evaluate(`[${root}.querySelector('.offline').hidden, ${root}.querySelector('.boot').hidden]`), [true, true]);
     t.eq("no fetch at all", await page.evaluate("window.__fetches"), []);
     t.eq("no catalogue request", catalogueRequests(), []);
-    const other = urls.filter((u) => !u.startsWith("data:") && !u.startsWith(BASE + "src/") && u !== PRODUCT);
-    t.eq("only the page and its modules were requested", other, []);
+    const own = /^(icons\/|manifest\.webmanifest$|sw\.js$|sw-precache\.js$)/;
+    const other = urls.filter((u) => !u.startsWith("data:") && !u.startsWith(BASE + "src/") && u !== PRODUCT && !own.test(u.slice(BASE.length)));
+    t.eq("only the page, its modules and its install files were requested", other, []);
     t.eq("no error logged", logs, []);
   });
 
@@ -103,9 +110,9 @@ try {
     for (const list of ["Playlists", "Artists", "Songs"]) {
       await pick(list);
       const s = await state();
-      t.eq(`${list} shows No Music`, [s.title, s.rows], [list, NO_MUSIC]);
-      await d.key("ArrowRight"); await sleep(60);
-      t.eq(`${list}: selecting No Music does nothing`, (await state()).title, list);
+      t.eq(`spec 32: ${list} shows help`, [s.title, s.rows], [list, HELP]);
+      await d.key("ArrowDown");
+      t.eq(`${list}: the help has one selectable row`, (await state()).rows, HELP);
       await back();
     }
     await d.key("ArrowUp"); await d.key("ArrowUp");
@@ -124,6 +131,7 @@ try {
     await open();
     await focusRing();
     await pick("Settings");
+    t.eq("spec 33: Name row first", (await titles())[0], "Name");
     t.eq("Import row present", (await titles()).includes("Import"), true);
     await pick("Import");
     t.eq("starts empty", [await value("Songs"), await value("Library")], ["0", "All"]);
@@ -172,9 +180,9 @@ try {
     await back(2);
     t.eq("no Now Playing row", await titles(), ["Playlists", "Artists", "Songs", "Settings"]);
     await pick("Songs");
-    t.eq("back to No Music", (await state()).rows, NO_MUSIC);
+    t.eq("back to help", (await state()).rows, HELP);
     t.eq("no catalogue request", catalogueRequests(), []);
-    t.ok("no request left the browser for the music", urls.every((u) => /^(blob|data):/.test(u) || u.startsWith(BASE + "src/") || u === PRODUCT), urls.join().slice(0, 300));
+    t.ok("no request left the browser for the music", urls.every((u) => /^(blob|data):/.test(u) || u.startsWith(BASE + "src/") || u.startsWith(BASE + "icons/") || /(sw\.js|sw-precache\.js|manifest\.webmanifest)$/.test(u) || u === PRODUCT), urls.join().slice(0, 300));
     t.eq("no error logged", logs, []);
   });
 
@@ -257,17 +265,18 @@ try {
     t.eq("background fills it", await page.evaluate("getComputedStyle(document.documentElement).backgroundColor"), "rgb(31, 31, 31)");
     const big = await size(1000, 900);
     t.eq("desktop: full scale, centred", [big.wheel, big.centre], [350, 500]);
+    t.eq("spec 34: reports its size to the device", await page.evaluate(`${P}.hasAttribute("fit")`), true);
     t.eq("desktop: fills the viewport, no scrolling", [big.mainW, big.mainH, big.sw, big.sh], [1000, 900, 1000, 900]);
     await d.shot("product");
     const phone = await size(390, 844);
-    t.eq("phone: scales, centred", [phone.wheel, phone.centre], [280, 195]);
+    t.eq("spec 34: phone scales to fit, centred", [Math.round(phone.wheel), Math.round(phone.centre)], [318, 195]);
     t.eq("phone: no sideways scroll", [phone.sw, phone.cw], [390, 390]);
     const small = await size(320, 568);
-    t.eq("small phone", [small.wheel, small.centre, small.sw], [262.5, 160, 320]);
+    t.eq("small phone", [Math.round(small.wheel), Math.round(small.centre), small.sw], [259, 160, 320]);
     const short = await size(1000, 500);
-    t.ok("short window scrolls rather than cutting the device", short.sh >= 692, short.sh);
+    t.eq("spec 34: a short window fits, with no scrolling", [Math.round(short.wheel), short.sh, short.ch], [247, 500, 500]);
     await page.send("Emulation.setDeviceMetricsOverride", { width: 1000, height: 900, deviceScaleFactor: 2, mobile: false });
-    await sleep(100);
+    await sleep(350);
     await d.press("select"); await sleep(280);
     t.eq("wheel input works on the page", (await state()).title, "Playlists");
     t.eq("no error logged", logs, []);

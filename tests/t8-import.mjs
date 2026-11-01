@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import "./gen-samples.mjs";
-import { BASE, boot, driver, sleep, T } from "./h.mjs";
+import { BASE, boot, CLEAR_STORED, driver, sleep, T } from "./h.mjs";
 
 const { browser, page, close, logs } = await boot();
 const d = driver(page);
@@ -37,7 +37,7 @@ const MAKE = `window.__mk = (items) => items.map(({ path, b64, stamp }) => {
   return file;
 }); 0`;
 const load = async (url) => {
-  await page.evaluate("localStorage.clear()").catch(() => {});
+  await page.evaluate(CLEAR_STORED).catch(() => {});
   await page.send("Page.bringToFront");
   await page.goto(url);
   await sleep(2150);
@@ -81,8 +81,8 @@ try {
     await focusRing();
     await pick("Settings");
     const s = await state();
-    t.eq("Import sits above Reset", s.rows.map((r) => r.text), ["About", "Shuffle", "Repeat", "Backlight Timer", "Clicker", "Import", "Reset All Settings"]);
-    t.eq("Import row has an arrow, no value", [s.rows[5].arrow, s.rows[5].value], [true, null]);
+    t.eq("Import sits above Reset", s.rows.map((r) => r.text), ["Name", "About", "Shuffle", "Repeat", "Backlight Timer", "Clicker", "Import", "Reset All Settings"]);
+    t.eq("Import row has an arrow, no value", [s.rows[6].arrow, s.rows[6].value], [true, null]);
     t.eq("debugState keys unchanged", Object.keys(s), ["view", "title", "rows", "nowPlaying", "brick", "settings", "backlit"]);
     await pick("Import");
     const i = await state();
@@ -90,6 +90,8 @@ try {
     t.eq("import rows", i.rows, [
       { text: "Add Folder", value: null, selected: true, arrow: false },
       { text: "Add Playlists", value: null, selected: false, arrow: false },
+      { text: "Rescan", value: null, selected: false, arrow: false },
+      { text: "Folders", value: null, selected: false, arrow: true },
       { text: "Library", value: "All", selected: false, arrow: false },
       { text: "Songs", value: "0", selected: false, arrow: false },
       { text: "Skipped", value: "0", selected: false, arrow: false },
@@ -106,7 +108,7 @@ try {
     await d.key("ArrowDown");
     await d.key("ArrowRight"); await sleep(50);
     const after = await state();
-    t.eq("Songs and Skipped do nothing", [after.title, after.rows.findIndex((r) => r.selected)], ["Import", 4]);
+    t.eq("Songs and Skipped do nothing", [after.title, after.rows.findIndex((r) => r.selected)], ["Import", 6]);
     void stay;
     await d.shot("import-screen");
   });
@@ -294,7 +296,7 @@ try {
     await pick("Now Playing");
     n = (await state()).nowPlaying;
     t.eq("queue kept playing", [n.title, n.playing, n.total], ["Real Tone", true, 5]);
-    const remote = urls.filter((u) => !u.startsWith("blob:") && !u.startsWith("data:") && !u.endsWith("/favicon.ico"));
+    const remote = urls.filter((u) => !u.startsWith("blob:") && !u.startsWith("data:") && !u.endsWith("/favicon.ico") && !u.endsWith("/icons/icon-512.png"));
     t.eq("no network requests for imported music", remote, []);
     t.ok("object urls used", urls.some((u) => u.startsWith("blob:")), urls.length);
     await page.send("Network.disable");
@@ -380,7 +382,7 @@ try {
     await sleep(2150);
     await focusRing();
     await pick("Settings"); await pick("Import");
-    t.eq("reload forgets imports", [await value("Songs"), await value("Library")], ["0", "All"]);
+    t.eq("spec 32: reload keeps imports", [await value("Songs"), await value("Library")], ["6", "Imported"]);
   });
 
   await section("scale", async () => {
@@ -441,6 +443,7 @@ try {
       t.eq(`chooser opened: ${label}`, opened.length, want);
     };
 
+    await page.send("Page.addScriptToEvaluateOnNewDocument", { source: "delete window.showDirectoryPicker; delete Window.prototype.showDirectoryPicker;" });
     await load(IMPORT);
     await openImport();
     const before = JSON.stringify(await state());
