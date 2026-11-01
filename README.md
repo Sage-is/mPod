@@ -27,6 +27,4 @@ Then open `http://127.0.0.1:8080/`. Folder access, the service worker and instal
 
 Alexander accepted the risk on 2026-11-01. The font, the CSS overlap, the name and the look ship as they are, and a complaint means taking the site down. `src/pod-screen.ttf` is ChicagoFLF 2.1: see `docs/FONT.md`.
 
-`tests/font-unit.mjs` and `tests/t11-font.mjs` check for our own drawn font, so they fail while ChicagoFLF is in place.
-
 Test specifications and comparison tools live in the private `Sage-is/Pod-Recomp` repo.

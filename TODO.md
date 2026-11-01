@@ -57,8 +57,8 @@ This file tracks active work only.
 - [ ] **Hosting**: `dist/` leaves the tailnet; it is plain static files #platform
   - [x] [WE] `make publish`: generated files, release suites, `dist/`, live copy
   - [x] [MANUALLY] Public on Cloudflare Pages, no gate (Alexander, 2026-11-01); decision record `OPS-Sage/docs/decisions/2026-10-11-pages-for-sites.md`
-  - [ ] [MANUALLY] Fill the Pages deploy token in the vault
-  - [ ] [WE] Swap the rsync line in `make publish` for `bunx wrangler pages deploy dist`; Netlify and nginx take the same folder
+  - [ ] [MANUALLY] Fill the vault stub `cloudflare-sage-is-pages-deploy` (token and `account-id`)
+  - [ ] [WE] Swap the rsync line in `make publish` for `bunx wrangler pages deploy dist`, through `sage-secret run`; Netlify and nginx take the same folder
   - [ ] [WE] `_headers`: `X-Robots-Tag: noindex` until Alexander announces it
   - [ ] [MANUALLY] Reinstall from the new address and link folders again: a new origin starts empty
 
@@ -141,8 +141,8 @@ This file tracks active work only.
 - [ ] **Hosting**: `dist/` leaves the tailnet; it is plain static files #platform
   - [x] [WE] `make publish`: generated files, release suites, `dist/`, live copy
   - [x] [MANUALLY] Public on Cloudflare Pages, no gate (Alexander, 2026-11-01); decision record `OPS-Sage/docs/decisions/2026-10-11-pages-for-sites.md`
-  - [ ] [MANUALLY] Fill the Pages deploy token in the vault
-  - [ ] [WE] Swap the rsync line in `make publish` for `bunx wrangler pages deploy dist`; Netlify and nginx take the same folder
+  - [ ] [MANUALLY] Fill the vault stub `cloudflare-sage-is-pages-deploy` (token and `account-id`)
+  - [ ] [WE] Swap the rsync line in `make publish` for `bunx wrangler pages deploy dist`, through `sage-secret run`; Netlify and nginx take the same folder
   - [ ] [WE] `_headers`: `X-Robots-Tag: noindex` until Alexander announces it
   - [ ] [MANUALLY] Reinstall from the new address and link folders again: a new origin starts empty
 
@@ -200,10 +200,10 @@ This file tracks active work only.
 
 ## Bugs
 
-- [ ] **Font test suites fail by design**: `tests/font-unit.mjs` and `tests/t11-font.mjs` expect our drawn font #bug
 
 ## Done
 
+- [x] **Font suites**: `t11-font` tests ChicagoFLF; spec 31's drawn-font checks wait behind `DRAWN_FONT`; `make check` runs every suite
 - [x] **Release risk accepted** (Alexander, 2026-11-01): font, CSS overlap, name and look ship as they are; a complaint means taking it down
 - [x] **Stage 2**: remembered library, Reconnect, rescan, help screens, Brave fallback (`docs/spec/32`)
 - [x] **Stage 3**: name, editable in Settings (`docs/spec/33`)

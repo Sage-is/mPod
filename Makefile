@@ -42,9 +42,6 @@ CONTAINER := $(PROJECT)-$(BRANCH)
 -include .env
 
 # 4. Project-specific targets
-# Suites a publish must pass. font-unit and t11-font stay out: they expect our
-# own drawn font and fail by design while ChicagoFLF is in place.
-CHECK_SUITES ?= tags-unit smoke t1-nav t12 t13 t14 t15
 # Where a build goes live. fonts.html, compare/ and s2/ are older test pages
 # that only exist there.
 PUBLISH_DIR ?= work/site/
@@ -56,11 +53,8 @@ it_run:  # Serve the checkout locally at http://127.0.0.1:$(PORT)
 build:  # Regenerate sw-precache.js and src/version.js
 	node dev/build-sw.mjs
 
-check:  # Generated files are current and the release suites pass
+check:  # Generated files are current and every suite passes
 	node dev/build-sw.mjs --check
-	node tests/run.mjs $(CHECK_SUITES)
-
-test:  # Every suite, including the two that fail by design
 	node tests/run.mjs
 
 dist: build  # Write dist/, the files the app ships
@@ -137,4 +131,4 @@ things_clean:
 .PHONY: help show_vars verify require_gitflow_next \
 	minor_release patch_release major_release hotfix \
 	release_finish hotfix_finish things_clean \
-	it_run build check test dist publish
+	it_run build check dist publish

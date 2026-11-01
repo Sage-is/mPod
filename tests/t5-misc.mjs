@@ -1,4 +1,4 @@
-import { boot, driver, sleep, T } from "./h.mjs";
+import { boot, driver, sleep, T, waitFor } from "./h.mjs";
 
 const { page, close, logs } = await boot();
 const d = driver(page);
@@ -298,9 +298,9 @@ try {
     await d.fresh();
     for (const [w, want] of [[500, 350], [430, 315], [390, 280], [350, 262.5]]) {
       await page.evaluate(`document.querySelector('pod-player').style.width='${w}px';0`);
-      await sleep(350);
-      const r = await d.rect();
-      t.eq(`host ${w}`, Math.round(r.width * 10) / 10, want);
+      const width = async () => Math.round((await d.rect()).width * 10) / 10;
+      await waitFor(async () => (await width()) === want, 2000);
+      t.eq(`host ${w}`, await width(), want);
     }
     await page.evaluate(`document.querySelector('pod-player').style.width='500px';0`);
     await sleep(350);
