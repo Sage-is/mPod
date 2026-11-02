@@ -2,6 +2,23 @@
 
 A pocket music player for your own music, as an installable web app. The code is private.
 
+## A love letter to the iPod
+
+Apple released the first iPod on 10 November 2001. mPod’s first public release, v0.1.0, marks its 25th anniversary on 10 November 2026. This is an homage to the first and second generation iPod, made as a work of love.
+
+The wheel turns beneath your hand, each step gives its tick, and the buttons press like switches. The grey LCD and its backlight complete the small, familiar world we wanted to honour.
+
+<p>
+  <img src="docs/images/ipod-1g.jpg" alt="A first generation iPod on a wooden table" width="49%">
+  <img src="docs/images/ipod-2g.jpg" alt="A second generation iPod on a dark wooden table" width="49%">
+</p>
+
+Photos: the first generation by [Blake Patterson](https://commons.wikimedia.org/wiki/File:Original_iPod_5G_(52066067732).jpg), [CC BY 2.0](https://creativecommons.org/licenses/by/2.0); the second generation by [fhke](https://commons.wikimedia.org/wiki/File:IPod_second_generation-2007-07-29.jpg), [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0). Both from Wikimedia Commons, resized.
+
+mPod plays your own music from folders on your own device, offline, in an app you install from the web. Every line of code is our own, written from our own descriptions of how the iPod behaved. Made by Alexander Somma with Sage.is AI.
+
+mPod is an unofficial fan project. It is not affiliated with or endorsed by Apple Inc. iPod is a trademark of Apple Inc.
+
 ## Run it
 
 ```bash
