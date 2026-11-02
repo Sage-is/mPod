@@ -95,7 +95,7 @@ export class BrickView {
 
   #needsFrame(fading) {
     const { game } = this;
-    const running = !this.device.inert && (game.inPlay || game.countdown > 0 || this.steerDir !== 0);
+    const running = !this.device.halted && (game.inPlay || game.countdown > 0 || this.steerDir !== 0);
     return running || this.dirty || fading;
   }
 
@@ -105,7 +105,7 @@ export class BrickView {
     this.woke = false;
     this.last = now;
     const { game } = this;
-    const paused = this.device.inert;
+    const paused = this.device.halted;
     let tick = game.tickMs;
     const before = `${game.balls}|${game.score}|${game.message}`;
     this.acc = Math.min(this.acc + dt, tick * 10);

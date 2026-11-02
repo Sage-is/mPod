@@ -54,5 +54,18 @@ export class Backlight {
     else this.activity();
   }
 
+  // Spec 39: off stops the timer and the light, and clears both forced states (42).
+  sleep() {
+    this.#cancel();
+    this.forcedOn = false;
+    this.forcedOff = false;
+    this.#set(false);
+  }
+
+  wake() {
+    this.#set(this.mode === "always_on");
+    this.activity();
+  }
+
   stop() { this.#cancel(); }
 }

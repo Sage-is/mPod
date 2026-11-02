@@ -1,24 +1,32 @@
 import { AudioGraph } from "./audio.js";
 import { Backlight } from "./backlight.js";
+import { Battery } from "./battery.js";
 import { BrickView } from "./brick-view.js";
 import { Buttons } from "./buttons.js";
 import { Catalogue, fetchCatalogue } from "./catalogue.js";
+import { CONTRASTS, eqGains } from "./eq-presets.js";
+import { Extras } from "./extras.js";
 import { ICONS } from "./glyphs.js";
 import { Importer } from "./importer.js";
 import { RingKeys, ScreenKeys } from "./keys.js";
+import { freezeStore } from "./library-store.js";
 import { ListView } from "./list-view.js";
 import { MediaControls } from "./media-session.js";
+import { Menus } from "./menus.js";
 import { Modes } from "./modes.js";
 import { NameView } from "./name-view.js";
 import { Navigator } from "./navigator.js";
 import { NowPlayingView, timeStrings } from "./now-playing-view.js";
+import { OneWindow } from "./one-window.js";
 import { Playback } from "./playback.js";
+import { Power } from "./power.js";
+import { Resume } from "./resume.js";
 import { settingsStore } from "./settings.js";
 import { Slider } from "./slider.js";
 import { Strings } from "./strings.js";
 import { css } from "./styles.js";
 import { grainUrl, template } from "./template.js";
-import { deepActiveElement } from "./util.js";
+import { deepActiveElement, el } from "./util.js";
 import { Wheel } from "./wheel.js";
 
 const BOOT_MIN = 2000;
@@ -26,6 +34,7 @@ const BOOT_MAX = 10000;
 const IDLE_JUMP = 10000;
 const VOLUME_SAVE = 1000;
 const REPEAT_MODES = { off: "none", one: "one", all: "all" };
+const SHUFFLE_MODES = { off: false, songs: true, albums: "albums" };
 const HAPTIC_GAP = 40;
 const BODY_WIDTH = 421;
 const BODY_HEIGHT = 698;
@@ -80,6 +89,7 @@ export class PodPlayer extends HTMLElement {
   fitScale = null;
   fitObserver = null;
   lastHaptic = -Infinity;
+  product = false;
 
   constructor() {
     super();
@@ -92,7 +102,7 @@ export class PodPlayer extends HTMLElement {
       title: q(".title"), state: q(".state"), brickHead: q(".brick-head"),
       brickBalls: q(".brick-balls"), brickScore: q(".brick-score"),
       body: q(".body-clip"), boot: q(".boot"), bootName: q(".boot span"), offline: q(".offline"), offlineText: q(".offline p"),
-      live: q(".live"), wheel: q(".wheel"), ring: q(".ring"),
+      live: q(".live"), wheel: q(".wheel"), ring: q(".ring"), battery: q(".battery"),
     };
     this.buttonEls = { menu: q(".btn.menu"), back: q(".btn.back"), forward: q(".btn.forward"), play: q(".btn.play"), select: q(".select") };
 
@@ -130,14 +140,17 @@ export class PodPlayer extends HTMLElement {
     const device = this;
     return {
       get graph() { return device.graph; },
-      changed: () => { this.modes.capToDuration(); this.media?.sync(); this.invalidate(); },
+      changed: () => { this.modes.capToDuration(); this.media?.sync(); this.resume?.sync(); this.invalidate(); },
       queueChanged: () => this.nav.queueChanged(),
       trackChanged: () => this.modes.trackChanged(),
       queueEnded: (last) => this.nav.queueEnded(last),
       applyVolume: () => this.graph.setVolume(this.volume),
       get files() { return device.importer; },
       get watchMedia() { return device.importEnabled; },
-      openFailed: (song) => this.importer?.openFailed(song),
+      get product() { return device.product; },
+      get parkedWaits() { return !!device.resume?.waiting; },
+      opened: (song) => this.importer?.opened(song),
+      openFailed: (song, cause, undecodable) => this.importer?.openFailed(song, cause, undecodable),
       durationKnown: (song, seconds) => this.importer?.noteDuration(song, seconds),
       mediaEvent: () => this.media?.sync(true),
       get after() { return device.importEnabled ? (seconds, fn) => device.graph?.after(seconds, fn) : null; },
@@ -148,10 +161,13 @@ export class PodPlayer extends HTMLElement {
 
   connectedCallback() {
     this.connected = true;
+    this.product = this.importEnabled && !this.isTestPage;
     registerFont();
     grain ??= grainUrl();
     this.parts.ring.style.setProperty("--grain", grain);
-    this.graph = new AudioGraph(this.volume);
+    if (this.product) this.#startProduct();
+    else this.settings.useDefaults();
+    this.graph = new AudioGraph(this.volume, this.product);
     this.unsubscribe = this.settings.subscribe(() => this.#settingsChanged());
     this.buttons.attach();
     window.addEventListener("online", this.onOnline);
@@ -166,7 +182,52 @@ export class PodPlayer extends HTMLElement {
     this.#startLibrary();
     if (!this.offline) this.#startBoot();
     if (this.hasAttribute("fit")) this.#startFit();
+    if (this.product) this.#settingsChanged();
     this.#render();
+  }
+
+  // Specs 36 to 41 exist only on the product page, so their parts are built here.
+  #startProduct() {
+    const { screen, device } = this.parts;
+    this.settings.useProduct();
+    if (!this.parts.lost) {
+      const lost = el("div", "overlay offline lost", { hidden: "" });
+      lost.innerHTML = `${ICONS.sadPlayer}<p><span class="lost-line"></span><span class="lost-line"></span></p>`;
+      screen.append(lost);
+      this.parts.lost = lost;
+      this.parts.lostLines = lost.querySelectorAll(".lost-line");
+      const power = el("div", "power", { hidden: "" });
+      power.innerHTML = '<span class="power-title"></span><span class="battery"><i></i><i></i><i></i><i></i></span>';
+      screen.append(power);
+      this.parts.power = power;
+      this.parts.powerTitle = power.querySelector(".power-title");
+      this.parts.powerBattery = power.querySelector(".battery");
+    }
+    this.oneWindow = new OneWindow(() => this.#lose());
+    this.oneWindow.start(device);
+    this.resume = new Resume(this);
+    this.menus = new Menus(this);
+    this.extras ??= new Extras(this);
+    this.battery = new Battery(() => this.invalidate());
+    this.battery.start();
+    this.power = new Power(this);
+    this.power.start();
+  }
+
+  // Spec 41: another window took over. Nothing here plays or writes from now on.
+  #lose() {
+    clearTimeout(this.saveTimer);
+    this.saveTimer = 0;
+    this.settings.freeze();
+    freezeStore();
+    this.importer?.stopScans();
+    this.extras.stop();
+    this.resume.stop();
+    this.power.wake();
+    if (this.playback.queue.length) this.playback.pause();
+    this.media?.stop();
+    this.media = null;
+    this.invalidate();
   }
 
   #startLibrary() {
@@ -178,7 +239,10 @@ export class PodPlayer extends HTMLElement {
       this.graph.onSuspend = () => this.media?.suspended();
     }
     this.libraryLoading = true;
-    started.finally(() => {
+    const ready = this.resume
+      ? started.then(() => this.resume.restore()).catch((err) => console.warn("pod-player: resume failed", err))
+      : started;
+    ready.finally(() => {
       this.libraryLoading = false;
       this.#updateBoot();
       this.invalidate();
@@ -187,6 +251,10 @@ export class PodPlayer extends HTMLElement {
 
   disconnectedCallback() {
     this.connected = false;
+    this.oneWindow?.stop();
+    this.resume?.stop();
+    this.power?.stop();
+    this.battery?.stop();
     this.fitObserver?.disconnect();
     this.fitObserver = null;
     this.media?.stop();
@@ -231,6 +299,8 @@ export class PodPlayer extends HTMLElement {
   }
 
   get isTestPage() { return this.hasAttribute("catalogue-url"); }
+  get lost() { return !!this.oneWindow?.lost; }
+  get off() { return !!this.power?.off; }
   get defaultName() { return this.isTestPage ? "Pod" : "mPod"; }
   get deviceName() { return this.settings.values.name || this.defaultName; }
   get showsHelp() { return !this.isTestPage && !!this.importer?.nothing; }
@@ -247,7 +317,8 @@ export class PodPlayer extends HTMLElement {
   linkFolder(handle) { return this.importer?.link(handle) ?? Promise.resolve(); }
 
   get settled() { return !this.libraryLoading && (this.status === "ready" || this.status === "error"); }
-  get inert() { return this.loading || this.offline; }
+  get inert() { return this.loading || this.offline || this.off; }
+  get halted() { return this.inert || this.lost; }
 
   #startBoot() {
     this.minDone = false;
@@ -324,6 +395,7 @@ export class PodPlayer extends HTMLElement {
   }
 
   get backlit() {
+    if (this.off) return false;
     const force = this.backlitOverride;
     if (force !== null && force !== undefined) return force !== "false";
     return this.backlight.lit;
@@ -351,8 +423,10 @@ export class PodPlayer extends HTMLElement {
   }
 
   activity() {
+    if (this.off) return;
     this.backlight.activity();
     if (this.idleTimer) this.#armIdle();
+    this.power?.activity();
   }
 
   click(count) {
@@ -396,8 +470,14 @@ export class PodPlayer extends HTMLElement {
   #settingsChanged() {
     const v = this.settings.values;
     this.backlight.setMode(v.backlight);
-    this.playback.setShuffle(v.shuffle === "songs");
+    this.playback.setShuffle(SHUFFLE_MODES[v.shuffle]);
     this.playback.setRepeat(REPEAT_MODES[v.repeat]);
+    if (this.product) {
+      this.graph?.setEq(eqGains(v.eq));
+      const contrast = CONTRASTS.find((choice) => choice.id === v.contrast).value;
+      this.parts.screen.toggleAttribute("data-contrast", contrast !== 1);
+      this.parts.screen.style.setProperty("--contrast", contrast);
+    }
     this.invalidate();
   }
 
@@ -431,7 +511,9 @@ export class PodPlayer extends HTMLElement {
     if (this.inert) return;
     if (name === "menu") this.nav.pop();
     else if (name === "select") this.select();
-    else if (name === "play") this.#playPause();
+    else if (name === "play") {
+      if (!this.product || !this.nav.playHighlighted()) this.#playPause();
+    }
     else if (!this.modes.scrubActive && this.playback.queue.length) {
       if (name === "back") this.playback.skipBack();
       else this.playback.skipForward();
@@ -448,9 +530,17 @@ export class PodPlayer extends HTMLElement {
     else if (this.playback.loaded) this.modes.toggleScrub();
   }
 
+  // A media key means the track, so it skips the rule for a highlighted list, and a parked
+  // track resumes whatever row is showing (43). With no queue, 08 stands.
+  playPause() {
+    if (this.inert) return;
+    if (this.playback.parked && !this.playback.toggles) this.playback.resume();
+    else this.#playPause();
+  }
+
   #playPause() {
     const pb = this.playback;
-    if (pb.loaded) pb.toggle();
+    if (pb.toggles) pb.toggle();
     else if (pb.loading) pb.pause();
     else this.nav.playSelection();
   }
@@ -511,12 +601,19 @@ export class PodPlayer extends HTMLElement {
     const inert = this.inert;
     screen.classList.toggle("lit", this.backlit);
     screen.classList.toggle("inert", inert);
-    parts.boot.hidden = !(this.loading && !this.offline);
+    parts.boot.hidden = !(this.loading && !this.offline && !this.lost);
     const name = this.deviceName;
     if (parts.bootName.textContent !== name) parts.bootName.textContent = name;
     if (this.importEnabled && document.title !== name) document.title = name;
     parts.offline.hidden = !this.offline;
     parts.offlineText.textContent = s.t("offline");
+    if (parts.lost) {
+      screen.classList.toggle("taken", this.lost);
+      parts.lost.hidden = !this.lost;
+      parts.lostLines[0].textContent = s.t("playingIn");
+      parts.lostLines[1].textContent = s.t("anotherWindow");
+      this.power.render();
+    }
 
     nav.clampSelection();
     const isBrick = nav.kind === "game";
@@ -529,8 +626,8 @@ export class PodPlayer extends HTMLElement {
     }
 
     const state = parts.state;
-    state.hidden = !pb.loaded;
-    if (pb.loaded) {
+    state.hidden = !pb.loaded && !pb.parked;
+    if (!state.hidden) {
       const name = pb.playing ? "playing" : "paused";
       if (!state.classList.contains(name)) {
         state.className = `state ${name}`;
@@ -539,7 +636,7 @@ export class PodPlayer extends HTMLElement {
     }
 
     const scrubbing = this.modes.scrubActive;
-    const label = { menu: "menu", back: "back", forward: "forward", select: "select", play: pb.playing || pb.starting ? "pause" : "play" };
+    const label = { menu: "menu", back: "back", forward: "forward", select: "select", play: pb.wanted ? "pause" : "play" };
     for (const [name, btn] of Object.entries(buttonEls)) {
       const disabled = inert || (scrubbing && (name === "back" || name === "forward"));
       btn.setAttribute("aria-label", s.t(label[name]));
@@ -553,10 +650,12 @@ export class PodPlayer extends HTMLElement {
     if (inert) this.screenKeys.resetEscape();
     this.view?.update();
     if (this.statusReady) {
-      const text = this.offline ? s.t("offline") : s.t(this.loading ? "loading" : "ready");
+      const text = this.lost ? `${s.t("playingIn")} ${s.t("anotherWindow")}`
+        : this.offline ? s.t("offline") : s.t(this.loading ? "loading" : "ready");
       if (parts.live.textContent !== text) parts.live.textContent = text;
     }
     this.#updateIdle();
+    this.power?.update();
   }
 
   // Test surface
@@ -565,7 +664,7 @@ export class PodPlayer extends HTMLElement {
     const { nav, playback: pb, modes, strings: s, settings } = this;
     const top = nav.kind;
     const SCREENS = { list: "list", "now-playing": "now-playing", name: "name", game: "brick" };
-    const view = this.offline ? "offline" : this.loading ? "loading" : SCREENS[top];
+    const view = this.lost ? "lost" : this.off ? "off" : this.offline ? "offline" : this.loading ? "loading" : SCREENS[top];
     let rows = [];
     if (top === "list") {
       rows = nav.rows.map((row, i) => ({
@@ -595,14 +694,14 @@ export class PodPlayer extends HTMLElement {
     if (this.brick) {
       brick = { balls: this.brick.game.balls, score: this.brick.game.score, message: this.brick.message };
     }
-    const { shuffle, repeat, clicker, volume, backlight } = settings.values;
+    const { shuffle, repeat, clicker, volume, backlight, eq, contrast } = settings.values;
     return {
       view,
       title: nav.title,
       rows,
       nowPlaying,
       brick,
-      settings: { shuffle, repeat, clicker, volume, backlight },
+      settings: { shuffle, repeat, clicker, volume, backlight, ...(this.product ? { eq, contrast } : {}) },
       backlit: this.backlit,
     };
   }

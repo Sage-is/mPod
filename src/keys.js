@@ -1,3 +1,4 @@
+import { PLAY_HOLD } from "./buttons.js";
 import { LIST_TIERS, SEEK_TIERS } from "./wheel.js";
 
 const NAMES = {
@@ -52,7 +53,7 @@ export class RingKeys {
         if (d.nav.top.key === "about") return { type: "hold", button: "select", first: 5000, repeat: 0 };
         return press("select");
       case "space":
-        return press("play");
+        return d.product ? { type: "hold", button: "play", first: PLAY_HOLD, repeat: 0 } : press("play");
       default:
         return hold("menu");
     }
@@ -179,7 +180,8 @@ export class ScreenKeys {
   #down(e) {
     const d = this.device;
     const kind = d.nav.kind;
-    if (kind === "game") return;
+    // A key that reaches here in a lost window is not a press (45), and it keeps its browser meaning.
+    if (kind === "game" || d.lost) return;
     if (d.inert) {
       if (SCREEN_KEYS.has(e.key)) swallow(e);
       return;

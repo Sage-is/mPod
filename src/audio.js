@@ -1,7 +1,11 @@
+import { EQ_BANDS, eqPreamp } from "./eq-presets.js";
+
 const CURVE_SAMPLES = 50;
 const curve = (fn) => Float32Array.from({ length: CURVE_SAMPLES }, (_, i) => fn(i / (CURVE_SAMPLES - 1)));
 const FADE_IN = curve((x) => Math.cos((1 - x) * Math.PI / 2));
 const FADE_OUT = curve((x) => Math.cos(x * Math.PI / 2));
+const EQ_Q = 1.4;
+const EQ_TIME = 0.02;
 
 function tickBuffer(ctx) {
   const rate = ctx.sampleRate;
@@ -22,12 +26,13 @@ function tickBuffer(ctx) {
 }
 
 export class AudioGraph {
-  constructor(volume) {
+  constructor(volume, withEq = false) {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     this.ctx = new Ctx();
     this.master = this.ctx.createGain();
     this.master.gain.value = volume / 100;
     this.master.connect(this.ctx.destination);
+    this.input = withEq ? this.#buildEq() : this.master;
     this.clickGain = this.ctx.createGain();
     this.clickGain.gain.value = 0.3;
     this.clickGain.connect(this.ctx.destination);
@@ -40,6 +45,27 @@ export class AudioGraph {
     this.unlocking = false;
     this.onSuspend = null;
     this.ctx.addEventListener("statechange", () => this.#stateChanged());
+  }
+
+  // Spec 40: fade gain, preamp, ten filters, master. Returns where the channels connect.
+  #buildEq() {
+    const { ctx } = this;
+    this.preamp = ctx.createGain();
+    this.filters = EQ_BANDS.map((frequency, i) => {
+      const filter = ctx.createBiquadFilter();
+      filter.type = i === 0 ? "lowshelf" : i === EQ_BANDS.length - 1 ? "highshelf" : "peaking";
+      filter.frequency.value = frequency;
+      filter.Q.value = EQ_Q;
+      return filter;
+    });
+    [this.preamp, ...this.filters, this.master].reduce((from, to) => from.connect(to));
+    return this.preamp;
+  }
+
+  setEq(gains) {
+    const at = this.ctx.currentTime;
+    this.filters.forEach((filter, i) => filter.gain.setTargetAtTime(gains[i], at, EQ_TIME));
+    this.preamp.gain.setTargetAtTime(10 ** (eqPreamp(gains) / 20), at, EQ_TIME);
   }
 
   // Calls back on the audio clock, which hidden pages do not throttle.
@@ -127,7 +153,7 @@ export class Channel {
     this.gain = graph.ctx.createGain();
     this.gain.gain.value = 0;
     this.source.connect(this.gain);
-    this.gain.connect(graph.master);
+    this.gain.connect(graph.input);
     this.listeners = [];
   }
 

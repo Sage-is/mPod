@@ -1,5 +1,8 @@
+export const PLAY_HOLD = 2000;
+
 const HOLDS = {
   menu: { first: 1000, repeat: 0 },
+  play: { first: PLAY_HOLD, repeat: 0 },
   back: { first: 1000, repeat: 500 },
   forward: { first: 1000, repeat: 500 },
   select: { first: 5000, repeat: 0 },
@@ -33,7 +36,7 @@ export class Buttons {
       btn.addEventListener("pointercancel", () => this.#abandon(name));
       btn.addEventListener("contextmenu", (e) => { if (this.held) e.preventDefault(); });
     }
-    for (const name of ["menu", "back", "forward"]) {
+    for (const name of ["menu", "back", "forward", "play"]) {
       const btn = els[name];
       btn.addEventListener("keydown", (e) => this.#keyDown(name, e));
       btn.addEventListener("keyup", (e) => this.#keyUp(name, e));
@@ -59,6 +62,7 @@ export class Buttons {
     if (name === "menu") return true;
     if (d.inert) return false;
     if (name === "select") return d.nav.top.key === "about";
+    if (name === "play") return d.product;
     return !d.modes.scrubActive;
   }
 
@@ -66,6 +70,7 @@ export class Buttons {
     const d = this.device;
     if (name === "menu") d.backlight.toggle();
     else if (name === "select") d.openBrick();
+    else if (name === "play") d.power.enter();
     else d.modes.holdSeek(name === "back" ? -1 : 1, first);
   }
 
@@ -115,8 +120,13 @@ export class Buttons {
   #release(name) { if (this.held?.name === name) this.cancel(); }
   #abandon(name) { if (this.held?.name === name) this.cancel(); }
 
+  // Spec 04 gives Play/Pause no hold. Spec 39 gives it one on the product page only.
+  #keyHolds(name, e) {
+    return (e.key === "Enter" || e.key === " ") && !this.device.lost && (name !== "play" || this.device.product);
+  }
+
   #keyDown(name, e) {
-    if (e.key !== "Enter" && e.key !== " ") return;
+    if (!this.#keyHolds(name, e)) return;
     e.preventDefault();
     if (e.repeat || this.held) return;
     if (this.holdEnabled(name)) this.#begin(name, true);
@@ -124,7 +134,7 @@ export class Buttons {
   }
 
   #keyUp(name, e) {
-    if (e.key !== "Enter" && e.key !== " ") return;
+    if (!this.#keyHolds(name, e)) return;
     e.preventDefault();
     const h = this.held;
     if (!h?.keyboard || h.name !== name) return;

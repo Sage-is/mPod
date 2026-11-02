@@ -2,6 +2,8 @@
 
 All of this appears only with the `import` attribute. The comparison test page stays as it is. Data lives in the IndexedDB store from 32.
 
+Build order: Resume is in the current batch. Stats and On-The-Go come later.
+
 ## Resume
 
 Store the current queue source, track path, position and shuffle order every 5 seconds while playing, and on pause. On start, the root menu shows `Now Playing`, paused at that position, without autoplay. If the track is gone, resume nothing and show no error. Resuming a track from a waiting folder uses the rule in 32.
@@ -18,18 +20,9 @@ Playlists gains these at the top, in order:
 
 They are hidden while empty. `Clear Imported` clears them, and `Reset All Settings` does not.
 
-## Albums and Genres
+## Browsing
 
-The root menu becomes `Playlists`, `Artists`, `Albums`, `Genres`, `Songs`, `Settings`, plus `Reconnect` and `Now Playing` where they apply.
-
-- `Albums`: `All`, then albums by name. An album is the pair of album and album artist, or artist. A song list keeps track order, then file path.
-- `Genres`: `All`, then genres by name, then artists in that genre, then songs. Missing genre is `Unknown Genre`, sorted last.
-- `Artists` gains an albums level when an artist has more than one: `All Songs`, then albums.
-- Sorting follows 09, ignoring a leading `The`.
-
-Read the genre from tags. Add it to 29's fields.
-
-With a catalogue and no imports the root menu stays exactly as in the original, so the comparison holds.
+Albums, Genres and Composers moved to 37.
 
 ## On-The-Go
 

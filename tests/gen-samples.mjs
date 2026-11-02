@@ -1,16 +1,12 @@
 // Generates small tagged samples under work/samples. Everything is synthesised here.
-import { copyFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 process.chdir(join(dirname(fileURLToPath(import.meta.url)), ".."));
 const ROOT = "work/samples";
-rmSync(ROOT, { recursive: true, force: true });
-const put = (path, data) => {
-  const full = join(ROOT, path);
-  mkdirSync(dirname(full), { recursive: true });
-  writeFileSync(full, data);
-};
+const samples = new Map();
+const put = (path, data) => samples.set(path, data);
 
 const syncsafe = (n) => Buffer.from([(n >> 21) & 127, (n >> 14) & 127, (n >> 7) & 127, n & 127]);
 const be32 = (n) => { const b = Buffer.alloc(4); b.writeUInt32BE(n); return b; };
@@ -121,10 +117,7 @@ put("Mix/Echo/Plain/1-04 Disc Track.oga", Buffer.from("x"));
 put("Mix/Echo/Plain/07.aac", Buffer.from("x"));
 put("Mix/Echo/Plain/1979 Year Title.wav", Buffer.from("x"));
 put("Mix/Solo/Loose.MP3", Buffer.from("x"));
-copyFileSync("fixtures/audio/tone-0.wav", join(ROOT, "tone-copy.tmp"));
-mkdirSync(join(ROOT, "Mix/Foxtrot/Tones"), { recursive: true });
-copyFileSync(join(ROOT, "tone-copy.tmp"), join(ROOT, "Mix/Foxtrot/Tones/01 Real Tone.wav"));
-rmSync(join(ROOT, "tone-copy.tmp"));
+put("Mix/Foxtrot/Tones/01 Real Tone.wav", readFileSync("fixtures/audio/tone-0.wav"));
 
 // Ignored and dotted.
 put("Mix/Echo/Plain/cover.jpg", Buffer.from("x"));
@@ -166,4 +159,37 @@ put("Order/Mike/Rev/c third file.mp3", Buffer.concat([tag(3, texts("utf8", "Trac
 put("Order/Alder/Same/x.mp3", Buffer.concat([tag(3, texts("utf8", "Shared Artist Song", "ALDER QUAY", "Same", "1")), silence(5)]));
 put("Order/Numeric/N/9 nine.flac", Buffer.from("x"));
 put("Order/Numeric/N/10 ten.flac", Buffer.from("x"));
-console.log("samples written");
+// Spec 37: the composer and album artist in every format, with the tag at the file's start.
+const le32 = (n) => { const b = Buffer.alloc(4); b.writeUInt32LE(n); return b; };
+const comments = (...fields) => Buffer.concat([le32(6), Buffer.from("vendor"), le32(fields.length), ...fields.flatMap((field) => {
+  const text = Buffer.from(field, "utf8");
+  return [le32(text.length), text];
+})]);
+const VORBIS_FIELDS = ["TITLE=Not Read", "composer=Comp Vörbis", "ALBUMARTIST=Band Vorbis"];
+const flacBlock = (type, body, last = false) => Buffer.concat([Buffer.from([(last ? 0x80 : 0) | type, body.length >> 16, (body.length >> 8) & 255, body.length & 255]), body]);
+const oggPage = (lacing, body) => Buffer.concat([Buffer.from("OggS"), Buffer.from([0, 0]), Buffer.alloc(16), Buffer.alloc(4), Buffer.from([lacing.length]), Buffer.from(lacing), body]);
+const lace = (n) => [...Array(Math.floor(n / 255)).fill(255), n % 255];
+const oggFile = (head, packet) => Buffer.concat([oggPage(lace(head.length), head), oggPage(lace(packet.length), packet), oggPage([4], Buffer.from("data"))]);
+
+put("Composer/23.mp3", Buffer.concat([tag(3, [frame23("TCOM", ENC.latin1("Comp Twothree")), frame23("TPE2", ENC.latin1("Band Twothree"))]), silence(2)]));
+put("Composer/24.mp3", Buffer.concat([tag(4, [frame24("TCOM", ENC.utf8("Cömp Twofour")), frame24("TPE2", ENC.utf8("Band Twofour"))]), silence(2)]));
+put("Composer/22.mp3", Buffer.concat([tag(2, [frame22("TCM", ENC.latin1("Comp Twotwo")), frame22("TP2", ENC.latin1("Band Twotwo"))]), silence(2)]));
+put("Composer/atoms.m4a", Buffer.concat([ftyp, moov(ilst("Wrt", "Delta Tag", "Atom Album", 1, [item("\u00a9wrt", Buffer.from("Comp Atom", "utf8")), item("aART", Buffer.from("Band Atom", "utf8"))])), atom("mdat", Buffer.alloc(100))]));
+put("Composer/block.flac", Buffer.concat([Buffer.from("fLaC"), flacBlock(0, Buffer.alloc(34)), flacBlock(4, comments(...VORBIS_FIELDS), true), Buffer.alloc(20)]));
+put("Composer/vorbis.ogg", oggFile(Buffer.from("\x01vorbis-ident"), Buffer.concat([Buffer.from("\x03vorbis"), comments(...VORBIS_FIELDS), Buffer.from([1])])));
+put("Composer/tags.opus", oggFile(Buffer.from("OpusHead-ident"), Buffer.concat([Buffer.from("OpusTags"), comments(...VORBIS_FIELDS)])));
+const spread = Buffer.concat([Buffer.from("\x03vorbis"), comments("LONG=" + "x".repeat(700), ...VORBIS_FIELDS), Buffer.from([1])]);
+put("Composer/pages.oga", Buffer.concat([oggPage([12], Buffer.from("\x01vorbis-head")), oggPage([255, 255], spread.subarray(0, 510)), oggPage(lace(spread.length - 510), spread.subarray(510))]));
+put("Composer/cut.ogg", Buffer.concat([oggPage([12], Buffer.from("\x01vorbis-head")), oggPage([255], Buffer.alloc(40))]));
+
+// tests/run.mjs writes the samples once before its workers start, so an import cannot wipe them
+// while another suite reads them. Suites run by hand still write their own.
+if (!process.env.SAMPLES_READY) {
+  rmSync(ROOT, { recursive: true, force: true });
+  for (const [path, data] of samples) {
+    const full = join(ROOT, path);
+    mkdirSync(dirname(full), { recursive: true });
+    writeFileSync(full, data);
+  }
+  console.log("samples written");
+}

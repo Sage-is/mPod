@@ -1,6 +1,11 @@
 const NAME = "mpod";
 const VERSION = 1;
 const STORES = { folders: "id", tracks: "id", playlists: "id", meta: "key" };
+const NOT_CLEARED = ["contacts", "calendar"];
+
+// Spec 41: a window that lost the lock writes nothing more.
+let frozen = false;
+export const freezeStore = () => { frozen = true; };
 
 const done = (request) => new Promise((resolve, reject) => {
   request.onsuccess = () => resolve(request.result);
@@ -27,9 +32,10 @@ class LibraryStore {
   }
 
   // One transaction per call: { put: {store: [records]}, remove: {store: [keys]} }
-  write({ put = {}, remove = {} }) {
+  // Async, so that a connection closed by another tab rejects and does not throw (44).
+  async write({ put = {}, remove = {} }) {
     const names = [...new Set([...Object.keys(put), ...Object.keys(remove)])];
-    if (!names.length) return Promise.resolve();
+    if (frozen || !names.length) return Promise.resolve();
     const tx = this.db.transaction(names, "readwrite");
     for (const [store, records] of Object.entries(put)) {
       const os = tx.objectStore(store);
@@ -42,10 +48,15 @@ class LibraryStore {
     return finished(tx);
   }
 
-  clear() {
+  async clear() {
+    if (frozen) return Promise.resolve();
     const names = Object.keys(STORES);
     const tx = this.db.transaction(names, "readwrite");
-    for (const name of names) tx.objectStore(name).clear();
+    for (const name of names) if (name !== "meta") tx.objectStore(name).clear();
+    const meta = tx.objectStore("meta");
+    meta.getAllKeys().onsuccess = (e) => {
+      for (const key of e.target.result) if (!NOT_CLEARED.includes(key)) meta.delete(key);
+    };
     return finished(tx);
   }
 }

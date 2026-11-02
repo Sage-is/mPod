@@ -1,3 +1,4 @@
+import { Marquee } from "./marquee.js";
 import { el } from "./util.js";
 
 export class ListView {
@@ -10,6 +11,7 @@ export class ListView {
     this.keys = [];
     this.lastSelection = -1;
     this.restore = device.nav.scrollRestore;
+    this.running = null;
   }
 
   get focusTarget() { return this.list; }
@@ -73,7 +75,29 @@ export class ListView {
     }
     if (selection !== this.lastSelection || rebuilt) this.#scrollToSelection(active);
     this.lastSelection = selection;
+    this.#marquee(active, rows[selection]);
   }
+
+  // Spec 38: on a detail list, the selected row's text runs as a marquee if it overflows.
+  #marquee(node, row) {
+    if (this.running?.node === node) return;
+    this.#stopMarquee();
+    if (!node || !row?.marquee) return;
+    const title = node.querySelector(".row-title");
+    const marquee = new Marquee();
+    title.replaceChildren(marquee.el);
+    marquee.set(row.text, row.id);
+    this.running = { node, title, marquee, text: row.text };
+  }
+
+  #stopMarquee() {
+    if (!this.running) return;
+    this.running.marquee.destroy();
+    this.running.title.textContent = this.running.text;
+    this.running = null;
+  }
+
+  destroy() { this.#stopMarquee(); }
 
   #scrollToSelection(row) {
     if (!row) return;

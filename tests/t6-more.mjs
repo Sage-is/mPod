@@ -20,6 +20,7 @@ const toBrick = async () => {
   await d.press("select", 5200); await sleep(100);
 };
 const path = async (points, ms = 8) => {
+  await d.settled();
   const [sx, sy] = points[0];
   await page.mouse("mouseMoved", sx, sy);
   await page.mouse("mousePressed", sx, sy, 1);

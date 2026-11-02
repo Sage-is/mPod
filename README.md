@@ -10,7 +10,7 @@ python3 -m http.server 8080
 
 Then open `http://127.0.0.1:8080/`. Folder access, the service worker and install need HTTPS or localhost.
 
-`make publish` rebuilds the generated files, runs the checks, writes `dist/` and puts it live. `dist/` is plain static files, so any host can serve it. `node dev/draw-icons.mjs` redraws the icons.
+`make publish` rebuilds the generated files, runs the checks, writes `dist/` and copies it to the tailnet page. `make deploy` does the same for Cloudflare Pages. `dist/` is plain static files, so any host can serve it. `node dev/draw-icons.mjs` redraws the icons.
 
 ## Layout
 

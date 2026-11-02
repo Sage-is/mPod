@@ -1,5 +1,5 @@
 // Spec 34: installable app. Lighthouse is not available, so each requirement is checked directly.
-// The offline and update sections serve a copy of the app on port 8436, then stop that server, so
+// The offline and update sections serve a copy of the app on its own port, then stop that server, so
 // "no network" is real and no service worker reaches the origin other suites use.
 import { spawn } from "node:child_process";
 import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -21,7 +21,7 @@ const section = async (name, fn) => {
 const P = "document.querySelector('pod-player')";
 const root = `${P}.shadowRoot`;
 const PRODUCT = BASE + "app/";
-const COPY_PORT = 8436;
+const COPY_PORT = Number(process.env.COPY_PORT ?? 8533);
 const COPY = `http://127.0.0.1:${COPY_PORT}/app/`;
 const OFFLINE_DIR = "work/pwa-copy";
 const TONE = readFileSync("fixtures/audio/tone-0.wav").toString("base64");
@@ -100,9 +100,10 @@ try {
 
   await section("about", async () => {
     await open();
+    await page.evaluate(CLEAR_STORED);
+    await open();
     await sleep(2100);
     await focusRing();
-    await pick("Settings");
     await pick("About");
     const rows = async () => (await state()).rows.map((r) => [r.text, r.value]);
     t.eq("true values only", await rows(), [["mPod", null], ["Songs", "0"], ["Library", "0 MB"], ["Version", VERSION]]);
@@ -160,6 +161,7 @@ try {
       t.eq("no offline overlay, no catalogue", await page.evaluate(`[${root}.querySelector('.offline').hidden, ${P}.hasAttribute("catalogue-url")]`), [true, false]);
       t.eq("font came from the cache", await page.evaluate("document.fonts.ready.then(()=>document.fonts.check('26px PodScreen'))"), true);
       await focusRing();
+      await pick("Browse");
       await pick("Songs");
       await d.press("select");
       t.ok("a linked folder plays with no network", await waitFor(async () => (await state()).nowPlaying?.playing, 3000));
@@ -281,8 +283,8 @@ try {
 
     console.log("# tap");
     await page.evaluate(`${root}.querySelector('.ring').focus({preventScroll:true});0`);
-    await pick("Songs");
-    t.eq("help on empty list", (await state()).title, "Songs");
+    await pick("Playlists");
+    t.eq("help on empty list", (await state()).title, "Playlists");
     r = await rect();
     await tap(r.cx, r.cy - 0.447 * r.width);
     await sleep(280);

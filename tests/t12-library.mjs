@@ -409,11 +409,13 @@ try {
     await openProduct();
     await focusRing();
     for (const list of ["Playlists", "Artists", "Songs"]) {
+      if (list !== "Playlists") await pick("Browse");
       await pick(list);
       const s = await state();
       t.eq(`${list}: help`, [s.title, s.rows.map((r) => [r.text, r.selected])], [list, [["No music yet", false], ["Choose Add Folder", false], ["to link your music.", false], ["Add Folder", true]]]);
-      await back();
+      await back(list === "Playlists" ? 1 : 2);
     }
+    await pick("Browse");
     await pick("Songs");
     await d.shot("library-help");
     await setTree("A", MUSIC);

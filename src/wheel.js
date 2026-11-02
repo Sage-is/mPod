@@ -3,7 +3,7 @@ export const SEEK_TIERS = [1, 2, 3, 5];
 const VOLUME_STEP = 4.5;
 const VOLUME_CLICK = 450 / 22;
 const REVERSAL = 8;
-const TOUCH_SLOP = 8;
+export const TOUCH_SLOP = 8;
 
 export class Accel {
   constructor(tiers) { this.tiers = tiers; this.reset(); }
@@ -70,16 +70,19 @@ export class Wheel {
   // Touch, on the product page only. The buttons' visible band is thin at small scales,
   // so a still touch on the ring presses the wedge under it, and a finger that starts
   // anywhere on the wheel and moves turns it.
-  #wedge(e) {
+  wedgeAt(e) {
     const g = this.#geometry();
     const x = e.clientX - g.cx, y = e.clientY - g.cy;
     if (Math.abs(x) > Math.abs(y)) return x > 0 ? "forward" : "back";
     return y < 0 ? "menu" : "play";
   }
 
+  // The restart chord took this touch over, so its release must not press anything.
+  dropTouch() { this.touch = null; }
+
   #touchDown(e) {
     if (e.pointerType !== "touch" || !e.isPrimary || !this.device.importEnabled || this.touch) return;
-    const wedge = e.target === this.ring ? this.#wedge(e) : null;
+    const wedge = e.target === this.ring ? this.wedgeAt(e) : null;
     this.touch = { id: e.pointerId, x: e.clientX, y: e.clientY, wedge, moved: false };
     if (wedge) this.device.buttons.ringHold(wedge);
   }

@@ -1,3 +1,5 @@
+import { EQ_PRESETS } from "./eq-presets.js";
+
 const DEFAULTS = {
   playlists: "Playlists", artists: "Artists", songs: "Songs", settings: "Settings", nowPlaying: "Now Playing",
   all: "All", allSongs: "All Songs", noMusic: "No Music",
@@ -22,7 +24,18 @@ const DEFAULTS = {
   noFolders: "No Folders", lastsUntilReload: "Lasts until reload", noMusicYet: "No music yet",
   chooseAddFolder: "Choose Add Folder", toLinkMusic: "to link your music.",
   name: "Name", delete: "Delete", done: "Done", space: "Space",
+  playingIn: "Playing in", anotherWindow: "another window", charging: "Charging", charged: "Charged",
+  browse: "Browse", albums: "Albums", genres: "Genres", composers: "Composers", unknownGenre: "Unknown Genre",
+  extras: "Extras", contacts: "Contacts", calendar: "Calendar", shuffleLibrary: "Shuffle Songs",
+  eq: "EQ", contrast: "Contrast", contrastLightest: "Lightest", contrastLight: "Light", contrastNormal: "Normal",
+  contrastDark: "Dark", contrastDarkest: "Darkest", shuffleAlbums: "Albums",
+  noContactsYet: "No contacts yet", noEventsYet: "No events yet", noUpcoming: "No upcoming events",
+  addContactsFolder: "Add Contacts Folder", addCalendarFolder: "Add Calendar Folder",
+  contactsFolder: "Contacts Folder", calendarFolder: "Calendar Folder", allDay: "All Day", untitled: "Untitled",
+  ...Object.fromEntries(EQ_PRESETS.map((preset) => [`eq-${preset.id}`, preset.name])),
 };
+
+const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
 
 export class Strings {
   #i18n = null;
@@ -83,6 +96,28 @@ export class Strings {
     return this.#number({ style: "unit", unit, maximumFractionDigits: 1 }).format(n / scale);
   }
   percent(volume) { return this.#number({ style: "percent" }).format(volume / 100); }
+
+  #date(options, at) {
+    const id = "d" + JSON.stringify(options);
+    if (!this.#formatters.has(id)) this.#formatters.set(id, new Intl.DateTimeFormat(this.#language, options));
+    return this.#formatters.get(id).format(at).replace(/\u202f/g, " ");
+  }
+
+  shortDate(at) { return this.#date({ month: "short", day: "numeric" }, at); }
+  fullDate(at) { return this.#date({ weekday: "long", year: "numeric", month: "long", day: "numeric" }, at); }
+
+  // Spec 44: a range ending on another day says which.
+  timeRange(from, to) {
+    const clock = (at) => this.#date({ hour: "numeric", minute: "2-digit" }, at);
+    if (!to || to === from) return clock(from);
+    return `${clock(from)} – ${sameDay(from, to) ? "" : `${this.shortDate(to)} `}${clock(to)}`;
+  }
+
+  // An all-day event ends at the midnight after its last day.
+  allDayRange(from, to) {
+    const last = to ? to - 1 : from;
+    return sameDay(from, last) ? this.t("allDay") : `${this.t("allDay")} – ${this.shortDate(last)}`;
+  }
 
   time(seconds) {
     const s = Math.max(0, seconds);

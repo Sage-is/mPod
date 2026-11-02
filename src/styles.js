@@ -164,6 +164,7 @@ export const css = `
 }
 
 .menu-layer { position: relative; z-index: 2; opacity: var(--opacity); }
+.screen[data-contrast] :is(.menu-layer, .overlay, .power.charging) { filter: contrast(var(--contrast)); }
 .screen.inert .menu-layer { visibility: hidden; }
 .overlay { position: absolute; inset: 0; z-index: 3; opacity: var(--opacity); pointer-events: none; }
 .overlay[hidden] { display: none; }
@@ -172,6 +173,14 @@ export const css = `
 .offline { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .offline svg { display: block; width: 90px; height: auto; color: currentColor; transform: translateX(-10%) translateY(-12px); }
 .offline p { position: absolute; left: 10px; right: 10px; bottom: 20px; margin: 0; font-size: 17.3333px; text-align: center; }
+.lost-line { display: block; }
+.screen.taken .menu-layer { visibility: hidden; }
+.power { position: absolute; inset: 0; z-index: 4; border-radius: 2px; background: #111; }
+.power[hidden] { display: none; }
+.power-title, .power .battery { display: none; }
+.power.charging { display: flex; flex-direction: column; align-items: center; background: none; opacity: var(--opacity); }
+.power.charging .power-title { display: block; margin-top: 14px; }
+.power.charging .battery { display: flex; position: relative; top: auto; inset-inline-end: auto; margin-top: 44px; transform: none; }
 
 .titlebar { position: relative; box-sizing: border-box; height: 37px; margin: 0 5px; border-bottom: 2px solid var(--ink); }
 .title {
@@ -203,6 +212,8 @@ export const css = `
   width: 8px; height: 22px; background: var(--ink);
 }
 .battery i { flex: 1; margin: 3px 0; background: var(--ink); }
+.battery[hidden] { display: none; }
+.battery i.dim { visibility: hidden; }
 .battery i:first-child { margin-inline-start: 3px; }
 .battery i:last-child { margin-inline-end: 3px; }
 .wrap[data-rtl] .battery { transform-origin: 0 23%; }
@@ -267,6 +278,7 @@ export const css = `
 .np-artist { margin-bottom: 2px; }
 .np-artist, .np-album { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .marquee { overflow: hidden; white-space: nowrap; text-align: center; }
+.row .marquee { text-align: start; }
 .marquee-track { display: inline-flex; max-width: none; vertical-align: top; }
 .marquee.overflow { text-align: start; }
 .marquee.overflow .marquee-track { display: flex; width: max-content; }

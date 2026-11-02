@@ -45,6 +45,9 @@ CONTAINER := $(PROJECT)-$(BRANCH)
 # Where a build goes live. fonts.html, compare/ and s2/ are older test pages
 # that only exist there.
 PUBLISH_DIR ?= work/site/
+# The Pages project, and the vault item holding its token and account.
+PAGES_PROJECT ?= mpod
+PAGES_ENV = CLOUDFLARE_API_TOKEN=bw:cloudflare-sage-is-pages-deploy CLOUDFLARE_ACCOUNT_ID=bw:cloudflare-sage-is-pages-deploy/account-id
 PORT ?= 8080
 
 it_run:  # Serve the checkout locally at http://127.0.0.1:$(PORT)
@@ -63,6 +66,12 @@ dist: build  # Write dist/, the files the app ships
 publish: build check dist  # Check, then put dist/ live at PUBLISH_DIR
 	rsync -a --delete --exclude=/fonts.html --exclude=/compare/ --exclude=/s2/ dist/ $(PUBLISH_DIR)
 	@echo "Published $$(sed -n 's/.*VERSION = "\(.*\)".*/\1/p' src/version.js)"
+
+pages_ready:  # Stop early while the Pages token is still a vault stub
+	@$(PAGES_ENV) sage-secret run -- sh dev/deploy-pages.sh --ready
+
+deploy: pages_ready build check dist  # Check, then put dist/ on Cloudflare Pages
+	@$(PAGES_ENV) sage-secret run -- sh dev/deploy-pages.sh $(PAGES_PROJECT)
 
 # 8. show_vars + verify
 show_vars:
@@ -131,4 +140,4 @@ things_clean:
 .PHONY: help show_vars verify require_gitflow_next \
 	minor_release patch_release major_release hotfix \
 	release_finish hotfix_finish things_clean \
-	it_run build check dist publish
+	it_run build check dist publish pages_ready deploy

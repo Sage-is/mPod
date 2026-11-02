@@ -1,3 +1,4 @@
+import { newSeed, seeded, shuffled } from "./album-order.js";
 import { BACKLIGHT_MODES } from "./settings.js";
 import { VERSION } from "./version.js";
 
@@ -5,15 +6,16 @@ const BACKLIGHT_LABELS = {
   off: "backlightOff", "1sec": "backlight1", "2sec": "backlight2", "3sec": "backlight3",
   "5sec": "backlight5", always_on: "backlightAlways",
 };
-const SHUFFLE_VALUES = { off: "off", songs: "shuffleSongs" };
+const SHUFFLE_VALUES = { off: "off", songs: "shuffleSongs", albums: "shuffleAlbums" };
 const REPEAT_VALUES = { off: "off", one: "repeatOneValue", all: "repeatAllValue" };
 const CLICKER_VALUES = { on: "on", off: "off" };
 const NEXT = { shuffle: { off: "songs", songs: "off" }, repeat: { off: "one", one: "all", all: "off" }, clicker: { on: "off", off: "on" } };
 
 const KINDS = { nowPlaying: "now-playing", brick: "game", name: "name" };
 const identity = (entry) => `${entry.key}|${entry.ctx ?? ""}`;
-const SONG_LISTS = new Set(["songs", "playlist", "artist"]);
-const HELP_LISTS = new Set(["playlists", "artists", "songs"]);
+const SONG_LISTS = new Set(["songs", "playlist", "artist", "artistSongs", "artistAlbum", "album", "genre", "genreArtist", "composer", "composerAll"]);
+const HELP_LISTS = new Set(["playlists", "artists", "songs", "albums", "genres", "composers"]);
+const FOLDER_MENUS = new Set(["folder", "extraFolder"]);
 
 export class Navigator {
   stack = [{ key: "root" }];
@@ -36,14 +38,6 @@ export class Navigator {
   rowsFor(entry) {
     const d = this.device;
     const s = d.strings;
-    const c = d.catalogue;
-    const v = d.settings.values;
-    const nav = (id, text, target) => ({ id, kind: "navigate", text, value: null, target });
-    const none = { id: "no-music", kind: "info", text: s.t("noMusic"), value: null, center: true };
-    const songRows = (songs) => (songs.length
-      ? songs.map((song) => ({ id: song.id, kind: "play", text: song.name, value: null, song }))
-      : [none]);
-
     if (HELP_LISTS.has(entry.key) && d.showsHelp) {
       const line = (id, key) => ({ id, kind: "info", text: s.t(key), value: null, center: true, help: true });
       return [
@@ -51,6 +45,19 @@ export class Navigator {
         { id: "add-folder", kind: "action", action: "pickFolder", text: s.t("addFolder"), value: null, center: true, help: true },
       ];
     }
+    return (d.product ? d.menus.rowsFor(entry, () => this.#plainRows(entry)) : null) ?? this.#plainRows(entry);
+  }
+
+  #plainRows(entry) {
+    const d = this.device;
+    const s = d.strings;
+    const c = d.catalogue;
+    const v = d.settings.values;
+    const nav = (id, text, target) => ({ id, kind: "navigate", text, value: null, target });
+    const none = { id: "no-music", kind: "info", text: s.t("noMusic"), value: null, center: true };
+    const songRows = (songs) => (songs.length
+      ? songs.map((song) => ({ id: song.id, kind: "play", text: song.name, value: null, song }))
+      : [none]);
 
     switch (entry.key) {
       case "root": {
@@ -130,6 +137,8 @@ export class Navigator {
   get rows() { return this.rowsFor(this.top); }
 
   titleOf(entry) {
+    const own = this.device.product ? this.device.menus.titleOf(entry) : null;
+    if (own !== null) return own;
     const s = this.device.strings;
     const c = this.device.catalogue;
     switch (entry.key) {
@@ -190,7 +199,7 @@ export class Navigator {
   // Memory
 
   #save(entry, rows) {
-    if (entry.key === "reset" || entry.key === "folder") return;
+    if (entry.key === "reset" || FOLDER_MENUS.has(entry.key)) return;
     const row = rows[this.selection];
     if (row) this.memory.set(identity(entry), { id: row.id, index: this.selection });
   }
@@ -206,7 +215,9 @@ export class Navigator {
     if (entry.key === "backlight") {
       return Math.max(0, rows.findIndex((r) => r.mode === this.device.settings.values.backlight));
     }
-    if (entry.key === "folder") return Math.max(0, rows.findIndex((r) => r.kind === "cancel"));
+    if (FOLDER_MENUS.has(entry.key)) return Math.max(0, rows.findIndex((r) => r.kind === "cancel"));
+    const chosen = rows.findIndex((r) => r.current);
+    if (chosen >= 0) return chosen;
     if (rows[0]?.help) return rows.length - 1;
     const current = this.currentRow(rows);
     if (current >= 0) return current;
@@ -315,29 +326,33 @@ export class Navigator {
   // Row actions
 
   songsOf(target) {
-    return this.rowsFor(target).filter((r) => r.kind === "play").map((r) => r.song);
+    const own = this.device.product ? this.device.menus.songsOf(target) : null;
+    return own ?? this.rowsFor(target).filter((r) => r.kind === "play").map((r) => r.song);
   }
 
   // A song from a folder that lost permission asks inside this same press. If that is
-  // refused, the list stays and Reconnect stays on Root.
+  // refused, the list stays and Reconnect stays on Root. By the time of the answer, the device
+  // can be off or the window lost, and then it plays nothing (45).
   #whenAllowed(songs, chosen, play) {
-    const asked = this.device.importer?.permissionFor(songs, chosen);
+    const d = this.device;
+    const asked = d.importer?.permissionFor(songs, chosen);
     if (!asked) { play(); return; }
     const entry = this.top;
-    asked.then((allowed) => { if (allowed && this.top === entry) play(); });
+    asked.then((allowed) => { if (allowed && this.top === entry && !d.off && !d.lost) play(); });
   }
 
   #playRow(rows, index) {
     const row = rows[index];
     const plays = rows.filter((r) => r.kind === "play").map((r) => r.song);
-    this.#whenAllowed(this.currentRow(rows) === index ? [] : plays, row.song, () => this.#startRow(rows, index));
+    const current = this.currentRow(rows) === index && !this.device.playback.parked;
+    this.#whenAllowed(current ? [] : plays, row.song, () => this.#startRow(rows, index));
   }
 
   #startRow(rows, index) {
     const d = this.device;
     const row = rows[index];
     if (this.currentRow(rows) === index) {
-      if (d.playback.loaded && d.playback.paused) d.playback.resume();
+      if ((d.playback.loaded || d.playback.parked) && d.playback.paused) d.playback.resume();
     } else {
       const plays = rows.filter((r) => r.kind === "play");
       this.setSource(this.top);
@@ -357,15 +372,23 @@ export class Navigator {
         break;
       case "toggle":
         if (row.field === "library") d.importer.toggleLibrary();
-        else d.settings.set(row.field, NEXT[row.field][d.settings.values[row.field]]);
+        else d.settings.set(row.field, row.next ?? NEXT[row.field][d.settings.values[row.field]]);
         break;
       case "action":
-        d.importer[row.action](row.arg);
+        if (row.run) row.run();
+        else d.importer[row.action](row.arg);
         if (row.pop) this.pop();
         break;
       case "choice":
         d.settings.chooseBacklight(row.mode);
         this.pop();
+        break;
+      case "pick":
+        d.settings.set(row.field, row.pick);
+        this.pop();
+        break;
+      case "shuffle":
+        this.shuffleSongs();
         break;
       case "cancel":
         this.pop();
@@ -382,22 +405,54 @@ export class Navigator {
     }
   }
 
+  // Returns false when the row holds no songs.
+  #startList(target) {
+    const d = this.device;
+    const songs = this.songsOf(target);
+    if (!songs.length) return false;
+    this.#whenAllowed(songs, null, () => {
+      this.setSource(target);
+      d.playback.start(songs);
+      this.push({ key: "nowPlaying" });
+    });
+    return true;
+  }
+
+  // Spec 37: one fresh order of the whole library. The Shuffle setting has no say in it.
+  // Spec 42: that holds on every press, even when Songs is already the queue source.
+  shuffleSongs() {
+    const d = this.device;
+    const seed = newSeed();
+    const songs = shuffled(d.catalogue.songs, seeded(seed));
+    this.#whenAllowed(songs, null, () => {
+      this.setSource({ key: "songs" });
+      d.playback.start(songs, 0, seed);
+      this.push({ key: "nowPlaying" });
+    });
+  }
+
+  // Spec 37, ahead of rule 1 of 08: Play on a row that opens another list starts that list.
+  playHighlighted() {
+    if (this.kind !== "list") return false;
+    const row = this.rows[this.selection];
+    if (row?.kind === "shuffle") {
+      this.shuffleSongs();
+      return true;
+    }
+    if (!this.device.playback.loaded || row?.kind !== "navigate" || !SONG_LISTS.has(row.target.key)) return false;
+    return this.source?.id !== identity(row.target) && this.#startList(row.target);
+  }
+
   playSelection() {
     const d = this.device;
     const rows = this.rows;
     const row = rows[this.selection];
-    if (row?.kind === "navigate" && SONG_LISTS.has(row.target.key)) {
-      const songs = this.songsOf(row.target);
-      if (songs.length) {
-        this.#whenAllowed(songs, null, () => {
-          this.setSource(row.target);
-          d.playback.start(songs);
-          this.push({ key: "nowPlaying" });
-        });
-        return;
-      }
-    }
+    const { song, parked } = d.playback;
+    // Spec 43: the row of a parked queue's own source resumes it, and does not restart the list.
+    const ownSource = parked && row?.kind === "navigate" && this.source?.id === identity(row.target);
+    if (!ownSource && row?.kind === "navigate" && SONG_LISTS.has(row.target.key) && this.#startList(row.target)) return;
     if (row?.kind === "play") { this.#playRow(rows, this.selection); return; }
-    if (d.playback.queue.length) d.playback.resume();
+    if (parked) this.#whenAllowed([song], song, () => d.playback.resume());
+    else if (d.playback.queue.length) d.playback.resume();
   }
 }

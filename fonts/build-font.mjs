@@ -1,4 +1,4 @@
-// Builds src/pod-screen.ttf from fonts/pod-screen.glyphs.txt with Node alone.
+// Builds fonts/pod-screen-a2.ttf from fonts/pod-screen.glyphs.txt with Node alone.
 //   node fonts/build-font.mjs
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";

@@ -1,3 +1,5 @@
+import { ID3V1_GENRES } from "./id3-genres.js";
+
 const WINDOW = 65536;
 const MAX_TEXT = 1 << 20;
 const MAX_UNSYNC_TAG = 1 << 24;
@@ -14,7 +16,12 @@ export class FileWindow {
     const hit = this.data && offset >= this.start && offset + length <= this.start + this.data.length;
     if (!hit) {
       const size = Math.max(length, WINDOW);
-      this.data = new Uint8Array(await this.file.slice(offset, offset + size).arrayBuffer());
+      try {
+        this.data = new Uint8Array(await this.file.slice(offset, offset + size).arrayBuffer());
+      } catch (err) {
+        this.failed = true;
+        throw err;
+      }
       this.start = offset;
     }
     const at = offset - this.start;
@@ -34,12 +41,23 @@ export function removeUnsync(b) {
   return out.subarray(0, n);
 }
 
-function decodeId3Text(b) {
+// Spec 43: many taggers write UTF-8 and call it Latin-1. Bytes above 0x7F that also make valid
+// UTF-8 are almost never real Latin-1. `repair` is set on the product page only.
+function latin1(bytes, repair) {
+  if (repair && bytes.some((byte) => byte > 0x7f)) {
+    try {
+      return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch { /* it really is Latin-1 */ }
+  }
+  return String.fromCharCode(...bytes);
+}
+
+function decodeId3Text(b, repair) {
   if (!b.length) return "";
   const body = b.subarray(1);
   let text;
   switch (b[0]) {
-    case 0: text = String.fromCharCode(...body.subarray(0, 32768)); break;
+    case 0: text = latin1(body.subarray(0, 32768), repair); break;
     case 1: text = new TextDecoder(body[0] === 0xfe ? "utf-16be" : "utf-16le").decode(body); break;
     case 2: text = new TextDecoder("utf-16be").decode(body); break;
     default: text = new TextDecoder("utf-8").decode(body);
@@ -48,13 +66,13 @@ function decodeId3Text(b) {
 }
 
 const FRAMES = {
-  2: { TT2: "title", TP1: "artist", TAL: "album", TRK: "track", TCO: "genre" },
-  3: { TIT2: "title", TPE1: "artist", TALB: "album", TRCK: "track", TCON: "genre" },
+  2: { TT2: "title", TP1: "artist", TAL: "album", TRK: "track", TCO: "genre", TCM: "composer", TP2: "albumArtist" },
+  3: { TIT2: "title", TPE1: "artist", TALB: "album", TRCK: "track", TCON: "genre", TCOM: "composer", TPE2: "albumArtist" },
 };
 FRAMES[4] = FRAMES[3];
 const PICTURE_FRAME = { 2: "PIC", 3: "APIC", 4: "APIC" };
 
-async function readId3(win) {
+async function readId3(win, repair) {
   const h = await win.bytes(0, 10);
   const major = h[3];
   if (!FRAMES[major]) return {};
@@ -80,7 +98,7 @@ async function readId3(win) {
   const headerSize = major === 2 ? 6 : 10;
   const idSize = major === 2 ? 3 : 4;
   const tags = {};
-  let left = 5;
+  let left = Object.keys(wanted).length;
   while ((left > 0 || !tags.art) && pos + headerSize <= limit) {
     const f = await src.bytes(pos, headerSize);
     if (f.length < headerSize || f[0] === 0) break;
@@ -93,7 +111,7 @@ async function readId3(win) {
     const field = wanted[id];
     if (id === PICTURE_FRAME[major] && size > 0) tags.art = true;
     if (field && !tags[field] && size > 0 && size <= MAX_TEXT) {
-      const value = await frameText(src, pos + headerSize, size, major, major === 2 ? 0 : be16(f, 8), tagUnsync);
+      const value = await frameText(src, pos + headerSize, size, major, major === 2 ? 0 : be16(f, 8), tagUnsync, repair);
       if (value) { tags[field] = value; left -= 1; }
     }
     pos += headerSize + size;
@@ -101,7 +119,7 @@ async function readId3(win) {
   return tags;
 }
 
-async function frameText(src, at, size, major, flags, tagUnsync) {
+async function frameText(src, at, size, major, flags, tagUnsync, repair) {
   let skip = 0;
   let unsync = false;
   if (major === 3) {
@@ -114,7 +132,7 @@ async function frameText(src, at, size, major, flags, tagUnsync) {
     unsync = tagUnsync || !!(flags & 0x0002);
   }
   const raw = (await src.bytes(at, size)).subarray(skip);
-  return decodeId3Text(unsync ? removeUnsync(raw) : raw);
+  return decodeId3Text(unsync ? removeUnsync(raw) : raw, repair);
 }
 
 export async function* atoms(win, start, end) {
@@ -142,7 +160,9 @@ export async function child(win, parent, type) {
   return null;
 }
 
-const ITEMS = { "©nam": "title", "©ART": "artist", aART: "albumArtist", "©alb": "album", trkn: "track", "©gen": "genre" };
+const ITEMS = {
+  "©nam": "title", "©ART": "artist", aART: "albumArtist", "©alb": "album", trkn: "track", "©gen": "genre", "©wrt": "composer",
+};
 
 async function readIlst(win, ilst) {
   const tags = {};
@@ -162,7 +182,6 @@ async function readIlst(win, ilst) {
     }
   }
   tags.artist ||= tags.albumArtist;
-  delete tags.albumArtist;
   return tags;
 }
 
@@ -181,7 +200,11 @@ async function readMp4(win, fileSize) {
   return ilst ? readIlst(win, ilst) : {};
 }
 
+const GENRE_NUMBER = /^(?:\((\d+)\)|(\d+))$/;
+const FLAC_COMMENT = 4;
 const FLAC_PICTURE = 6;
+const VORBIS = { COMPOSER: "composer", ALBUMARTIST: "albumArtist", "ALBUM ARTIST": "albumArtist" };
+const le32 = (b, at) => b[at] + b[at + 1] * 256 + b[at + 2] * 65536 + b[at + 3] * 16777216;
 
 export async function* flacBlocks(win, fileSize) {
   let pos = 4;
@@ -195,30 +218,105 @@ export async function* flacBlocks(win, fileSize) {
   }
 }
 
-async function flacHasPicture(win, fileSize) {
-  for await (const block of flacBlocks(win, fileSize)) if (block.type === FLAC_PICTURE) return true;
-  return false;
+// Spec 37 wants only these two from Vorbis comments. Title and the rest stay with the path.
+function vorbisComments(b) {
+  const tags = {};
+  let pos = 4 + le32(b, 0);
+  const count = le32(b, pos);
+  pos += 4;
+  for (let i = 0; i < count && pos + 4 <= b.length; i++) {
+    const length = le32(b, pos);
+    const text = new TextDecoder("utf-8").decode(b.subarray(pos + 4, pos + 4 + length));
+    pos += 4 + length;
+    const equals = text.indexOf("=");
+    const field = VORBIS[text.slice(0, equals).toUpperCase()];
+    if (field) tags[field] ??= text.slice(equals + 1).trim();
+  }
+  return tags;
 }
 
-function normalise(tags) {
+async function readFlac(win, fileSize) {
+  const tags = {};
+  for await (const block of flacBlocks(win, fileSize)) {
+    if (block.type === FLAC_PICTURE) tags.art = true;
+    if (block.type === FLAC_COMMENT && block.length <= MAX_TEXT) Object.assign(tags, vorbisComments(await win.bytes(block.start, block.length)));
+  }
+  return tags;
+}
+
+// The comments are the stream's second packet, which can run across pages.
+async function oggCommentPacket(win) {
+  const spans = [];
+  let pos = 0;
+  let packet = 0;
+  let size = 0;
+  const keep = (at, length) => {
+    if (packet !== 1 || !length) return;
+    spans.push([at, length]);
+    size += length;
+  };
+  while (packet < 2 && size <= MAX_TEXT) {
+    const h = await win.bytes(pos, 27);
+    if (h.length < 27 || ascii(h, 0, 4) !== "OggS") return null;
+    const lacing = await win.bytes(pos + 27, h[26]);
+    let at = pos + 27 + h[26];
+    let run = 0;
+    for (const segment of lacing) {
+      run += segment;
+      if (segment === 255) continue;
+      keep(at, run);
+      at += run;
+      run = 0;
+      packet += 1;
+    }
+    keep(at, run);
+    pos = at + run;
+  }
+  const out = new Uint8Array(size);
+  let filled = 0;
+  for (const [at, length] of spans) {
+    const part = await win.bytes(at, length);
+    out.set(part.subarray(0, out.length - filled), filled);
+    filled += part.length;
+  }
+  return out.subarray(0, Math.min(filled, size));
+}
+
+async function readOgg(win) {
+  const packet = await oggCommentPacket(win);
+  if (!packet) return {};
+  if (ascii(packet, 0, 8) === "OpusTags") return vorbisComments(packet.subarray(8));
+  return packet[0] === 3 && ascii(packet, 1, 6) === "vorbis" ? vorbisComments(packet.subarray(7)) : {};
+}
+
+// Spec 43, with `repair`: a genre that is only a number names an ID3v1 genre, or none.
+function cleanGenre(genre, repair) {
+  const number = repair ? GENRE_NUMBER.exec(genre.trim()) : null;
+  if (number) return ID3V1_GENRES[Number(number[1] ?? number[2])];
+  return genre.replace(/^(\(\d+\))+/, "").trim() || undefined;
+}
+
+function normalise(tags, repair) {
   const track = typeof tags.track === "string" ? Number.parseInt(tags.track, 10) : tags.track;
   const out = { ...tags, track: track > 0 ? track : undefined };
   if (!out.art) delete out.art;
-  if (out.genre) out.genre = out.genre.replace(/^(\(\d+\))+/, "").trim() || undefined;
+  if (out.genre) out.genre = cleanGenre(out.genre, repair);
   return out;
 }
 
-// Rejects only when the file itself cannot be read. A damaged tag yields no tags.
-export async function readTags(file, extension) {
+// Rejects when the file itself cannot be read, on any read. A damaged tag yields no tags.
+export async function readTags(file, extension, repair = false) {
   const win = new FileWindow(file);
   const head = await win.bytes(0, 12);
   try {
-    if (head[0] === 0x49 && head[1] === 0x44 && head[2] === 0x33) return normalise(await readId3(win));
+    if (head[0] === 0x49 && head[1] === 0x44 && head[2] === 0x33) return normalise(await readId3(win, repair), repair);
     if (extension === "m4a" || extension === "mp4" || ascii(head, 4, 4) === "ftyp") {
-      return normalise(await readMp4(win, file.size));
+      return normalise(await readMp4(win, file.size), repair);
     }
-    if (ascii(head, 0, 4) === "fLaC") return normalise({ art: await flacHasPicture(win, file.size) });
-  } catch {
+    if (ascii(head, 0, 4) === "fLaC") return normalise(await readFlac(win, file.size), repair);
+    if (ascii(head, 0, 4) === "OggS") return normalise(await readOgg(win), repair);
+  } catch (err) {
+    if (win.failed) throw err;
     return {};
   }
   return {};

@@ -18,6 +18,11 @@ self.addEventListener("activate", (event) => {
   )));
 });
 
+// Spec 39: Restart brings a waiting version in at once. Otherwise it waits for the next start.
+self.addEventListener("message", (event) => {
+  if (event.data === "skipWaiting") self.skipWaiting();
+});
+
 async function cachedPage() {
   const cache = await caches.open(CACHE);
   return cache.match(page);

@@ -26,6 +26,9 @@ export class MediaControls {
     const d = this.device;
     const pb = d.playback;
     const act = (fn) => (details) => {
+      // Spec 42: a lost window ignores these, and only a press can ask for a waiting folder.
+      if (d.lost || d.resume?.waiting) return;
+      d.power?.wake();
       d.graph?.unlock();
       d.activity();
       fn(details);
@@ -40,8 +43,8 @@ export class MediaControls {
       pb.seek(clamp(t, 0, duration), pb.trackId, fast);
     };
     this.actions = {
-      play: act(() => { if (!pb.playing && !pb.starting) d.press("play"); }),
-      pause: act(() => { if (pb.playing || pb.starting) d.press("play"); }),
+      play: act(() => { if (!pb.wanted) d.playPause(); }),
+      pause: act(() => { if (pb.wanted) d.playPause(); }),
       previoustrack: skip("back"),
       nexttrack: skip("forward"),
       seekbackward: act(() => seek(pb.time - SEEK_STEP, false)),
@@ -82,7 +85,7 @@ export class MediaControls {
       this.song = song;
       this.#publish(song);
     }
-    const state = !song ? "none" : pb.playing || pb.starting ? "playing" : "paused";
+    const state = !song ? "none" : pb.wanted ? "playing" : "paused";
     if (state !== this.state) {
       this.state = state;
       this.session.playbackState = state;
@@ -101,10 +104,16 @@ export class MediaControls {
     const cached = this.art.get(song.id);
     this.#metadata(song, cached ? this.#urlOf(cached) : null);
     if (!song.imported || this.art.has(song.id)) return;
-    this.#loadArt(song).then((scaled) => {
-      this.#remember(song.id, scaled);
+    this.#loadArt(song).then(({ scaled, failed }) => {
+      // Spec 43: a read that failed says nothing about the art, so it is not remembered.
+      if (!failed || scaled || !this.device.product) this.#remember(song.id, scaled);
       if (scaled && token === this.token) this.#metadata(song, this.#urlOf(scaled));
     });
+  }
+
+  // The folder a parked track waited on is back, so its art can be read now.
+  publishAgain() {
+    if (this.session && this.song) this.#publish(this.song);
   }
 
   #metadata(song, url) {
@@ -118,18 +127,21 @@ export class MediaControls {
 
   async #loadArt(song) {
     const { importer } = this.device;
-    if (!importer) return null;
+    if (!importer) return { scaled: null, failed: false };
     const tries = [
       async () => (song.hasArt ? embeddedArt(await importer.fileOf(song)) : null),
       () => importer.folderImage(song),
     ];
+    let failed = false;
     for (const find of tries) {
       try {
         const source = await find();
-        if (source) return await scaleArt(source);
-      } catch { /* try the next source */ }
+        if (source) return { scaled: await scaleArt(source), failed };
+      } catch {
+        failed = true;
+      }
     }
-    return null;
+    return { scaled: null, failed };
   }
 
   #remember(id, scaled) {

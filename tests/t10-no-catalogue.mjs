@@ -68,6 +68,13 @@ const pick = async (text) => {
 const back = async (n = 1) => { for (let i = 0; i < n; i++) { await d.key("ArrowLeft"); await sleep(280); } };
 const focusRing = async () => { await d.press("menu"); await sleep(280); };
 const NO_MUSIC = [{ text: "No Music", value: null, selected: true, arrow: false }];
+const ROOT_ROWS = ["Playlists", "Browse", "Extras", "Settings", "About"];
+// Spec 37: only Playlists stays on the root menu of the product page.
+const pickList = async (list) => {
+  if (list !== "Playlists") await pick("Browse");
+  await pick(list);
+};
+const backFromList = async (list) => back(list === "Playlists" ? 1 : 2);
 const HELP = [
   { text: "No music yet", value: null, selected: false, arrow: false },
   { text: "Choose Add Folder", value: null, selected: false, arrow: false },
@@ -93,7 +100,7 @@ try {
     console.log(`    menu ${Math.round(ready)} ms after navigation`);
     t.ok("boot timing unchanged, about 2 s", ready >= 2000 && ready < 2700, ready);
     const s = await state();
-    t.eq("normal menu, not offline, not an error", [s.view, s.title, await titles()], ["list", "mPod", ["Playlists", "Artists", "Songs", "Settings"]]);
+    t.eq("normal menu, not offline, not an error", [s.view, s.title, await titles()], ["list", "mPod", ROOT_ROWS]);
     t.eq("live text Ready", await page.evaluate(`${root}.querySelector('.live').textContent`), "Ready");
     t.eq("no overlay showing", await page.evaluate(`[${root}.querySelector('.offline').hidden, ${root}.querySelector('.boot').hidden]`), [true, true]);
     t.eq("no fetch at all", await page.evaluate("window.__fetches"), []);
@@ -108,17 +115,16 @@ try {
     await open();
     await focusRing();
     for (const list of ["Playlists", "Artists", "Songs"]) {
-      await pick(list);
+      await pickList(list);
       const s = await state();
       t.eq(`spec 32: ${list} shows help`, [s.title, s.rows], [list, HELP]);
       await d.key("ArrowDown");
       t.eq(`${list}: the help has one selectable row`, (await state()).rows, HELP);
-      await back();
+      await backFromList(list);
     }
     await d.key("ArrowUp"); await d.key("ArrowUp");
     await d.press("play"); await sleep(120);
     t.eq("Play/Pause with nothing to play", (await state()).view, "list");
-    await pick("Settings");
     await pick("About");
     const about = await state();
     t.eq("About reports 0 songs", [about.rows[1].text, about.rows[1].value], ["Songs", "0"]);
@@ -144,14 +150,14 @@ try {
       await back(2);
       const out = {};
       for (const list of ["Songs", "Artists", "Playlists"]) {
-        await pick(list);
+        await pickList(list);
         out[list] = await titles();
-        await back();
+        await backFromList(list);
       }
-      await pick("Settings");
       await pick("About");
       out.about = (await state()).rows[1].value;
       await back();
+      await pick("Settings");
       await pick("Import");
       return out;
     };
@@ -165,21 +171,21 @@ try {
     const tone = walk(join(SAMPLES, "Mix/Foxtrot"), "Foxtrot");
     await page.evaluate(`${P}.importFiles(__mk(${JSON.stringify(tone)})).then(()=>1)`);
     await back(2);
-    await pick("Songs");
+    await pickList("Songs");
     await pick("Real Tone");
     await sleep(400);
     const n = (await state()).nowPlaying;
     t.eq("imported track plays", [n.title, n.total, n.playing], ["Real Tone", 7, true]);
     await d.press("menu"); await sleep(280);
-    await back();
+    await backFromList("Songs");
     await pick("Settings");
     await pick("Import");
     await pick("Clear Imported");
     await sleep(120);
     t.eq("clear empties it", [await value("Songs"), await value("Library")], ["0", "All"]);
     await back(2);
-    t.eq("no Now Playing row", await titles(), ["Playlists", "Artists", "Songs", "Settings"]);
-    await pick("Songs");
+    t.eq("no Now Playing row", await titles(), ROOT_ROWS);
+    await pickList("Songs");
     t.eq("back to help", (await state()).rows, HELP);
     t.eq("no catalogue request", catalogueRequests(), []);
     t.ok("no request left the browser for the music", urls.every((u) => /^(blob|data):/.test(u) || u.startsWith(BASE + "src/") || u.startsWith(BASE + "icons/") || /(sw\.js|sw-precache\.js|manifest\.webmanifest)$/.test(u) || u === PRODUCT), urls.join().slice(0, 300));
@@ -208,7 +214,7 @@ try {
     const items = walk(join(SAMPLES, "Mix/Foxtrot"), "Foxtrot");
     await page.evaluate(`${P}.importFiles(__mk(${JSON.stringify(items)})).then(()=>1)`);
     await focusRing();
-    await pick("Songs");
+    await pickList("Songs");
     await d.key("ArrowRight"); await sleep(500);
     t.eq("playing", (await state()).nowPlaying.playing, true);
     await page.send("Network.emulateNetworkConditions", OFFLINE);

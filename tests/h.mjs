@@ -1,4 +1,4 @@
-// Scenario harness for the build side. Run after starting dev/serve.mjs on 8432.
+// Scenario harness for the build side. Run after starting dev/serve.mjs on 8532.
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,7 +7,7 @@ import { launch, openPage, sleep } from "../dev/cdp.mjs";
 // Scratch output and fixtures are named from the project root, whatever the caller's directory.
 process.chdir(join(dirname(fileURLToPath(import.meta.url)), ".."));
 
-export const BASE = "http://127.0.0.1:8432/";
+export const BASE = "http://127.0.0.1:8532/";
 export { sleep };
 // Spec 32: the library outlives a reload, so a clean start has to remove it too.
 export const CLEAR_STORED = `Promise.all([localStorage.clear(), new Promise((done) => {
@@ -17,7 +17,8 @@ export const CLEAR_STORED = `Promise.all([localStorage.clear(), new Promise((don
 const SCHEME = process.env.SCHEME ?? "dark";
 
 export async function boot() {
-  const { browser, close } = await launch({ port: 9334, profile: "work/chrome" });
+  // tests/run.mjs sets these per worker. A suite run by hand takes the defaults.
+  const { browser, close } = await launch({ port: Number(process.env.CHROME_PORT ?? 9434), profile: process.env.CHROME_PROFILE ?? "work/chrome" });
   const page = await openPage(browser, BASE);
   const logs = [];
   // Spec 01: the page may report dark. Pin it, so results do not follow the time of day,
@@ -73,7 +74,14 @@ export function driver(page) {
       await page.click(r.cx + p[0], r.cy + p[1], ms);
       await sleep(40);
     },
+    // A drag that starts as a slide ends can lose pointer capture, and with it every move. A late
+    // frame is enough to cause that, so wait for the slide and the frames after it, not a fixed time.
+    settled: async () => {
+      await waitFor(() => page.evaluate("document.querySelector('pod-player').slider.moving.size === 0"), 3000);
+      await page.evaluate("new Promise((done) => { requestAnimationFrame(() => requestAnimationFrame(done)); setTimeout(done, 1000); })");
+    },
     rotate: async (deg, { steps, stepMs } = {}) => {
+      await d.settled();
       const r = await d.rect();
       const n = steps ?? Math.max(6, Math.round(Math.abs(deg) / 4));
       await page.rotate(r.cx, r.cy, 0.27 * r.width, 0, deg, n, stepMs ?? Math.round((Math.abs(deg) / 350 * 1000) / n));

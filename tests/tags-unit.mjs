@@ -30,6 +30,19 @@ const cases = [
 ];
 for (const [path, want] of cases) t.eq(path, await tags(path), want);
 
+const named = async (path) => {
+  const out = await readTags(new Blob([readFileSync(`work/samples/Composer/${path}`)]), path.split(".").pop());
+  return [out.composer, out.albumArtist];
+};
+const composers = [
+  ["23.mp3", ["Comp Twothree", "Band Twothree"]], ["24.mp3", ["Cömp Twofour", "Band Twofour"]], ["22.mp3", ["Comp Twotwo", "Band Twotwo"]],
+  ["atoms.m4a", ["Comp Atom", "Band Atom"]], ["block.flac", ["Comp Vörbis", "Band Vorbis"]], ["vorbis.ogg", ["Comp Vörbis", "Band Vorbis"]],
+  ["tags.opus", ["Comp Vörbis", "Band Vorbis"]], ["pages.oga", ["Comp Vörbis", "Band Vorbis"]], ["cut.ogg", [undefined, undefined]],
+];
+for (const [path, want] of composers) t.eq(`composer: ${path}`, await named(path), want);
+t.eq("Vorbis comments leave the title to the path", (await readTags(new Blob([readFileSync("work/samples/Composer/block.flac")]), "flac")).title, undefined);
+t.eq("an album artist alone still stands in for the artist", (await readTags(new Blob([readFileSync("work/samples/Mix/Delta/Atoms/04 Album Artist.M4A")]), "m4a")).albumArtist, "Delta Album Artist");
+
 const reads = [];
 const counted = new Blob([readFileSync("work/samples/Mix/Delta/Atoms/02 End.m4a")]);
 const spy = { size: counted.size, slice: (a, b) => { reads.push(b - a); return counted.slice(a, b); } };
