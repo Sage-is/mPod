@@ -175,10 +175,14 @@ export const css = `
 .offline p { position: absolute; left: 10px; right: 10px; bottom: 20px; margin: 0; font-size: 17.3333px; text-align: center; }
 .lost-line { display: block; }
 .screen.taken .menu-layer { visibility: hidden; }
-.power { position: absolute; inset: 0; z-index: 4; border-radius: 2px; background: #111; }
+/* Spec 51: no callout and no selection on a long press. */
+.device.product { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* Spec 48: off is the unlit LCD under its reflection, with nothing drawn on it. */
+.power { position: absolute; inset: 0; z-index: 4; border-radius: 2px; }
 .power[hidden] { display: none; }
+.screen.off .overlay { visibility: hidden; }
 .power-title, .power .battery { display: none; }
-.power.charging { display: flex; flex-direction: column; align-items: center; background: none; opacity: var(--opacity); }
+.power.charging { display: flex; flex-direction: column; align-items: center; opacity: var(--opacity); }
 .power.charging .power-title { display: block; margin-top: 14px; }
 .power.charging .battery { display: flex; position: relative; top: auto; inset-inline-end: auto; margin-top: 44px; transform: none; }
 

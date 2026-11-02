@@ -19,6 +19,7 @@ export class Power {
   down = new Map();
   eatClick = false;
   eatClicks = false;
+  switches = new Map();
 
   constructor(device) {
     this.device = device;
@@ -26,7 +27,10 @@ export class Power {
     this.body = device.parts.device;
     this.onPointerDown = (e) => this.#pointerDown(e);
     this.onPointerMove = (e) => this.#pointerMove(e);
-    this.onPointerUp = (e) => this.#release(`pointer ${e.pointerId}`);
+    this.onPointerUp = (e) => {
+      this.#switchUp(e);
+      this.#release(`pointer ${e.pointerId}`);
+    };
     this.onKeyDown = (e) => this.#keyDown(e);
     this.onKeyUp = (e) => this.#release(`key ${e.key}`);
     this.onClick = (e) => this.#click(e);
@@ -138,16 +142,34 @@ export class Power {
 
   #clear() {
     this.down.clear();
+    this.switches.clear();
     clearTimeout(this.chord);
     this.chord = 0;
   }
 
+  // Specs 49 to 51: each of the five buttons is a switch, felt once as it goes down, off or on.
+  // Only its own area presses it, by touch as by mouse. The ring only turns.
+  #switchDown(e) {
+    const d = this.device;
+    const button = e.target.closest?.("button");
+    if (!button || !Object.values(d.buttonEls).includes(button)) return;
+    this.switches.set(e.pointerId, { touch: e.pointerType === "touch", x: e.clientX, y: e.clientY });
+    d.buzz(10);
+  }
+
+  // Spec 51: nothing comes as it goes up. A finger that turned the wheel left its press already.
+  #switchUp(e) { this.switches.delete(e.pointerId); }
+
+  // While a finger holds a button down, nothing else may vibrate (51).
+  get pressing() { return this.switches.size > 0; }
+
   // Spec 43: a finger that turns the wheel is not a press. The wheel lets go of a finger in the
   // chord, and never sees one that joined it, so the chord watches them itself.
   #pointerMove(e) {
+    const turned = (press) => press?.touch && Math.hypot(e.clientX - press.x, e.clientY - press.y) >= TOUCH_SLOP;
+    if (turned(this.switches.get(e.pointerId))) this.switches.delete(e.pointerId);
     const source = `pointer ${e.pointerId}`;
-    const press = this.down.get(source);
-    if (press?.touch && Math.hypot(e.clientX - press.x, e.clientY - press.y) >= TOUCH_SLOP) this.#release(source);
+    if (turned(this.down.get(source))) this.#release(source);
   }
 
   #buttonAt(e) {
@@ -156,13 +178,12 @@ export class Power {
     const button = e.target.closest?.("button");
     if (button === menu) return "menu";
     if (button === play) return "play";
-    if (e.pointerType !== "touch" || button) return null;
-    const wedge = d.wheel.wedgeAt(e);
-    return wedge === "menu" || wedge === "play" ? wedge : null;
+    return null; // Spec 50: a touch on the ring never joins the chord.
   }
 
   #pointerDown(e) {
     this.#freshPress();
+    this.#switchDown(e);
     const name = this.#buttonAt(e);
     const press = name && { name, touch: e.pointerType === "touch", x: e.clientX, y: e.clientY };
     const inChord = this.#pressed(`pointer ${e.pointerId}`, press);

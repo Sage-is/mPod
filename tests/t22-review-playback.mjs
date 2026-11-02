@@ -432,8 +432,9 @@ try {
     await page.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 2 });
     await page.evaluate("window.__marker=1");
     const touch = (type, touchPoints) => page.send("Input.dispatchTouchEvent", { type, touchPoints });
-    const playFinger = { x: r.cx, y: r.cy + 0.32 * r.width, id: 1 };
-    const menuFinger = { x: r.cx, y: r.cy - 0.32 * r.width, id: 2 };
+    // Spec 50: on the buttons themselves. A touch on the ring is no press.
+    const playFinger = { x: r.cx, y: r.cy + 0.447 * r.width, id: 1 };
+    const menuFinger = { x: r.cx, y: r.cy - 0.447 * r.width, id: 2 };
     const held = async (moved) => {
       await touch("touchStart", [playFinger]);
       await sleep(40);

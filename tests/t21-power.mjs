@@ -106,7 +106,7 @@ try {
     t.ok("and keeps its position", (await page.evaluate(`${element}.currentTime`)) >= at);
     t.eq("no track played on", await page.evaluate(`${element}.paused`), true);
     const screen = await page.evaluate(`(()=>{const p=${ROOT}.querySelector('.power');const s=getComputedStyle(p);const r=p.getBoundingClientRect();const c=${ROOT}.querySelector('.screen').getBoundingClientRect();return {hidden:p.hidden,background:s.backgroundColor,opacity:s.opacity,covers:r.width>c.width-20&&r.height>c.height-20,device:getComputedStyle(${ROOT}.querySelector('.device')).visibility,lit:${ROOT}.querySelector('.screen').classList.contains('lit')}})()`);
-    t.eq("the screen is solid #111, the body stays", screen, { hidden: false, background: "rgb(17, 17, 17)", opacity: "1", covers: true, device: "visible", lit: false });
+    t.eq("the screen is the unlit LCD, which 48 puts in place of #111, and the body stays", screen, { hidden: false, background: "rgba(0, 0, 0, 0)", opacity: "1", covers: true, device: "visible", lit: false });
     t.eq("the backlight is off", (await a.state()).backlit, false);
     await d.shot("power-off");
     await sleep(700);
@@ -369,7 +369,8 @@ try {
   await section("charging", async () => {
     const title = () => page.evaluate(`${ROOT}.querySelector('.power-title').textContent`);
     const shown = () => page.evaluate(`(()=>{const p=${ROOT}.querySelector('.power');const s=getComputedStyle(p);return [s.backgroundColor,getComputedStyle(${ROOT}.querySelector('.power-title')).display]})()`);
-    const SOLID = ["rgb(17, 17, 17)", "none"];
+    // Spec 48: plain off is the unlit LCD, with nothing drawn on it.
+    const SOLID = ["rgba(0, 0, 0, 0)", "none"];
     const big = ".power .battery";
 
     console.log("# a computer with no battery");
@@ -434,8 +435,9 @@ try {
     await page.evaluate("window.__marker=1");
     await pressed();
     const r = await d.rect();
-    const play = { x: r.cx, y: r.cy + 0.32 * r.width, id: 1 };
-    const menu = { x: r.cx, y: r.cy - 0.32 * r.width, id: 2 };
+    // Spec 50: on the buttons themselves. A touch on the ring is no press.
+    const play = { x: r.cx, y: r.cy + 0.447 * r.width, id: 1 };
+    const menu = { x: r.cx, y: r.cy - 0.447 * r.width, id: 2 };
     await touch("touchStart", [play]);
     await sleep(100);
     await touch("touchStart", [play, menu]);

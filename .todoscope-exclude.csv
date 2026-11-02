@@ -2,3 +2,4 @@ path,reason
 work,scratch and test output
 node_modules,dependency cache
 fixtures,test data
+dist,generated files

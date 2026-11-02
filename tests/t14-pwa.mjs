@@ -67,7 +67,7 @@ try {
     const m = JSON.parse(readFileSync("manifest.webmanifest", "utf8"));
     t.eq("names", [m.name, m.short_name, m.id], ["mPod", "mPod", "mpod"]);
     t.eq("relative start and scope", [m.start_url, m.scope], [".", "."]);
-    t.eq("window", [m.display, m.orientation, m.background_color, m.theme_color], ["standalone", "any", "#1f1f1f", "#1f1f1f"]);
+    t.eq("window", [m.display, m.orientation, m.background_color, m.theme_color], ["fullscreen", "any", "#1f1f1f", "#1f1f1f"]);
     t.eq("no screenshots or shortcuts", ["screenshots" in m, "shortcuts" in m], [false, false]);
     t.eq("icons", m.icons.map((i) => [i.sizes, i.purpose]), [["192x192", "any"], ["512x512", "any"], ["512x512", "maskable"]]);
     for (const icon of m.icons) {
@@ -264,10 +264,12 @@ try {
     t.eq("input really is touch", await page.evaluate("[...new Set(window.__types)]"), ["touch"]);
 
     console.log("# wheel");
+    await page.evaluate("window.__buzz.length=0;0");
     await turn(r.cx, r.cy, 0.27 * r.width, 0, 95);
     t.ok("a finger turns the ring", (await d.sel()) > 0, await d.sel());
     t.eq("the turn did not fire a tap", (await state()).title, "mPod");
     t.eq("no scrolling", await page.evaluate("[window.__scrolled, scrollY, document.querySelector('main').scrollTop]"), [0, 0, 0]);
+    // Spec 50: the ring is no switch, so every tick of a turn is the wheel's.
     const buzz = await page.evaluate("window.__buzz");
     t.ok("haptic tick per detent, 4 ms", buzz.length >= 2 && buzz.every(([ms]) => ms === 4), JSON.stringify(buzz));
     const sel = await d.sel();
@@ -293,23 +295,30 @@ try {
     await tap(r.cx, r.cy, 20);
     await sleep(280);
     t.ok("tap on Select works", (await state()).title !== "mPod");
-    await tap(r.cx, r.cy - 0.32 * r.width);
-    await sleep(280);
-    t.eq("a still touch on the ring's upper part is Menu", (await state()).title, "mPod");
+    // Spec 50: the wheel only turns, so a still touch on the ring presses nothing.
+    const opened = (await state()).title;
     await page.evaluate(`window.__pressed=[];const press=${P}.press.bind(${P});${P}.press=(n)=>{__pressed.push(n);press(n)};0`);
     const ring = 0.32 * r.width;
     for (const [x, y] of [[0, -ring], [ring, 0], [0, ring], [-ring, 0]]) await tap(r.cx + x, r.cy + y);
-    t.eq("each part of the ring is its own wedge", await page.evaluate("window.__pressed"), ["menu", "forward", "play", "back"]);
+    await sleep(280);
+    t.eq("a still touch on the ring presses nothing", [await page.evaluate("window.__pressed"), (await state()).title], [[], opened]);
+    const band = 0.447 * r.width;
+    for (const [x, y] of [[0, -band], [band, 0], [0, band], [-band, 0]]) await tap(r.cx + x, r.cy + y);
+    t.eq("each outer button is pressed on its own area", await page.evaluate("window.__pressed"), ["menu", "forward", "play", "back"]);
 
     console.log("# hold");
+    await page.evaluate("window.__pressed.length=0;0");
     const lit = (await state()).backlit;
     await down(r.cx, r.cy - 0.447 * r.width); await sleep(1100); await up(); await sleep(100);
     t.eq("hold on Menu toggles the backlight", [(await state()).backlit, (await state()).title], [!lit, "mPod"]);
+    // A touch is activity, which lights the backlight, so count the holds that fire instead.
+    await page.evaluate(`window.__fired=0;const fire=${P}.buttons.fire.bind(${P}.buttons);${P}.buttons.fire=(...a)=>{__fired++;fire(...a)};0`);
     await down(r.cx, r.cy - 0.32 * r.width); await sleep(1100); await up(); await sleep(100);
-    t.eq("so does a hold on the ring's upper part", [(await state()).backlit, (await state()).title], [lit, "mPod"]);
+    t.eq("a hold on the ring does nothing", [await page.evaluate("window.__fired"), await page.evaluate("window.__pressed"), (await state()).title], [0, [], "mPod"]);
+    await down(r.cx, r.cy - 0.447 * r.width); await sleep(1100); await up(); await sleep(100);
 
     console.log("# drag off a hold");
-    await down(r.cx, r.cy - 0.32 * r.width);
+    await down(r.cx, r.cy - 0.447 * r.width);
     await sleep(100);
     await move(r.cx + 60, r.cy - 0.2 * r.width);
     await sleep(1100);
@@ -336,13 +345,13 @@ try {
     const m = await page.evaluate(`(()=>{const w=${P}.getWheelRect().width;const q=(s)=>${root}.querySelector(s).offsetWidth*w/${root}.querySelector('.wheel').offsetWidth;return {select:q('.select'),wheel:w,ring:q('.ring')}})()`);
     console.log("    " + JSON.stringify(m));
     t.ok("Select at least 44 px", m.select >= 44, m.select);
-    t.ok("a touch wedge is at least 44 px deep, ring plus outer band", (m.wheel - m.select) / 2 >= 44, JSON.stringify(m));
-    t.ok("and 44 px wide at its middle", ((m.wheel + m.select) / 2) * Math.PI / 4 >= 44, JSON.stringify(m));
+    // Spec 50 makes the outer band the only place to press the four buttons, as on a 1G iPod.
+    console.log(`    the outer band is ${Math.round((m.wheel - m.ring) / 2)} px deep here`);
     const small = await rect();
-    await tap(small.cx, small.cy - 0.3 * small.width);
-    await tap(small.cx, small.cy - 0.3 * small.width);
+    await tap(small.cx, small.cy - 0.447 * small.width);
+    await tap(small.cx, small.cy - 0.447 * small.width);
     await sleep(280);
-    t.eq("taps work at that scale", (await state()).title, "mPod");
+    t.eq("taps on Menu work at that scale", (await state()).title, "mPod");
     await page.send("Emulation.setTouchEmulationEnabled", { enabled: false });
     t.eq("console clean", logs, []);
   });

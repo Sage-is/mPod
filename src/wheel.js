@@ -3,7 +3,10 @@ export const SEEK_TIERS = [1, 2, 3, 5];
 const VOLUME_STEP = 4.5;
 const VOLUME_CLICK = 450 / 22;
 const REVERSAL = 8;
-export const TOUCH_SLOP = 8;
+// Spec 51: how far a resting finger may drift before it turns the wheel. 20 CSS px is about
+// 3 mm on a phone, two and a half times Android's own 8 dp touch slop, so a thumb held on a
+// button can roll a little.
+export const TOUCH_SLOP = 20;
 
 export class Accel {
   constructor(tiers) { this.tiers = tiers; this.reset(); }
@@ -82,7 +85,8 @@ export class Wheel {
 
   #touchDown(e) {
     if (e.pointerType !== "touch" || !e.isPrimary || !this.device.importEnabled || this.touch) return;
-    const wedge = e.target === this.ring ? this.wedgeAt(e) : null;
+    // Spec 50: on the product page the wheel only turns, as on a 1G iPod.
+    const wedge = e.target === this.ring && !this.device.product ? this.wedgeAt(e) : null;
     this.touch = { id: e.pointerId, x: e.clientX, y: e.clientY, wedge, moved: false };
     if (wedge) this.device.buttons.ringHold(wedge);
   }
@@ -156,6 +160,8 @@ export class Wheel {
     this.ring.setPointerCapture(e.pointerId);
     this.#resetDrag();
     this.prev = { x, y, t: e.timeStamp };
+    // Spec 51: a finger resting on the ring turns nothing until it has moved past the allowance.
+    this.rest = e.pointerType === "touch" && this.device.product ? { x: e.clientX, y: e.clientY } : null;
     this.enterDragging("pointer");
   }
 
@@ -172,6 +178,11 @@ export class Wheel {
     if (e.pointerId !== this.pointerId) return;
     const g = this.#geometry();
     const x = e.clientX - g.cx, y = e.clientY - g.cy;
+    if (this.rest && Math.hypot(e.clientX - this.rest.x, e.clientY - this.rest.y) < TOUCH_SLOP) {
+      this.prev = { x, y, t: e.timeStamp };
+      return;
+    }
+    this.rest = null;
     const p = this.prev;
     this.prev = { x, y, t: e.timeStamp };
     if (segmentDistance(p.x, p.y, x, y) < 0.1 * g.radius) return;

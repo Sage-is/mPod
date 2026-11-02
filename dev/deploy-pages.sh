@@ -11,7 +11,7 @@ WRANGLER="bunx wrangler@4.156.0"
 for value in "${CLOUDFLARE_API_TOKEN:-}" "${CLOUDFLARE_ACCOUNT_ID:-}"; do
   case "$value" in
     "" | REPLACE-ME | bw:*)
-      echo "Fill the vault item cloudflare-sage-is-pages-deploy first." >&2
+      echo "Fill the vault item cloudflare-startr-cloud-pages-deploy first." >&2
       exit 1
       ;;
   esac

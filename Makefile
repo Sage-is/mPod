@@ -47,7 +47,7 @@ CONTAINER := $(PROJECT)-$(BRANCH)
 PUBLISH_DIR ?= work/site/
 # The Pages project, and the vault item holding its token and account.
 PAGES_PROJECT ?= mpod
-PAGES_ENV = CLOUDFLARE_API_TOKEN=bw:cloudflare-sage-is-pages-deploy CLOUDFLARE_ACCOUNT_ID=bw:cloudflare-sage-is-pages-deploy/account-id
+PAGES_ENV = CLOUDFLARE_API_TOKEN=bw:cloudflare-startr-cloud-pages-deploy CLOUDFLARE_ACCOUNT_ID=bw:cloudflare-startr-cloud-pages-deploy/account-id
 PORT ?= 8080
 
 it_run:  # Serve the checkout locally at http://127.0.0.1:$(PORT)

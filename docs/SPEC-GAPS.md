@@ -31,7 +31,8 @@ Specs 00 to 31 are in `SPEC-GAPS-00-31.md`, moved there unchanged to keep each f
 ## Installable app (34)
 
 - New attribute `fit`, on `index.html` only: scale 0.45 to 1, 4 px margin. Never above 1, for the pixel grid. Below 0.45 the device crops.
-- The buttons' band is 37 px, 18 px at the smallest scale. So with `import`, a still touch on the ring presses the wedge under it, and hold works. A finger starting anywhere that moves 8 px turns the wheel. The test page has neither.
+- The buttons' band is 37 px, 18 px at the smallest scale. So with `import`, a still touch on the ring presses the wedge under it, and hold works. A finger starting anywhere that moves 8 px turns the wheel. The test page has neither. On the product page, 50 ends the ring's press, and 51 makes the allowance 20 px.
+- 50: the four outer buttons press only on that band, as on a 1G iPod, so at the smallest scale they are under 34's 44 px. Select stays above it.
 - Navigation tries the network for 3 s, then the cache. `/` is the test page under `dev/serve.mjs`, so a cache-first page would hijack it. Assets are cache-first, so a new page can briefly meet old assets until the next start.
 - Offline, a deeper URL redirects to the scope, because the page's paths are relative.
 - No `clients.claim`: the first visit runs uncontrolled, and the next start is covered.
@@ -108,10 +109,18 @@ Specs 00 to 31 are in `SPEC-GAPS-00-31.md`, moved there unchanged to keep each f
 - Off counts as inert, so Brick stops and nothing acts. Lost is not inert, so `halted` covers both for Brick and auto-off.
 - Auto-repeat and key release do not wake. Ctrl, Meta and Alt keys wake but keep their browser meaning.
 - A media action on a parked track in a waiting folder does nothing, so it does not wake either.
-- On the wheel, a touch anywhere in a wedge counts for Restart. With a mouse, only the Menu and Play/Pause buttons do.
+- Restart takes the Menu and Play/Pause buttons themselves, by touch or mouse. 50 took the ring's wedges out of it.
 - A finger that turns the wheel leaves the chord.
 - The worker message is the string `skipWaiting`.
-- 43: the chord watches touch pointers itself, with the wheel's 8 px slop. A mouse held on a button does not leave it by moving.
+- 43: the chord watches touch pointers itself, with the wheel's slop, now 51's 20 px. A mouse held on a button does not leave it by moving.
+- 48: off hides the boot and lost overlays too, so nothing but the LCD and its reflection shows.
+- 49 and 51: a switch is a pointer press, by mouse or touch, on one of the five buttons. It ticks 10 ms as it lands. A finger that turns the wheel leaves its press, and from then its turn ticks as the wheel does.
+- 51: while a button is held, the wheel's tick is held back too, whatever calls it. A second button pressed in that time, as in the restart chord, still gets its own tick, since it is a press of its own.
+- 51: the drift allowance is 20 CSS px, about 3 mm on a phone. It holds for a touch on a button and for one on the ring. A turn starts from where the finger crossed it, so it does not jump.
+- 51: `contextmenu` is cancelled on the whole device on the product page, and it gets no callout and no selection.
+- 49: keys give no ticks. A keyboard is its own switch.
+- 49: a button's ticks neither wait for nor use up the wheel's 25 per second.
+- 49: the wheel's tick from 34 keeps its own rule, `import` alone, so the test page with `import` still has it.
 
 ## One window (41, 42)
 

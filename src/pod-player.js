@@ -212,6 +212,10 @@ export class PodPlayer extends HTMLElement {
     this.battery.start();
     this.power = new Power(this);
     this.power.start();
+    // Spec 51: a long press gives the phone nothing to answer, from its first moment, so
+    // Android has no long press of its own to buzz for.
+    device.classList.add("product");
+    device.addEventListener("contextmenu", (e) => e.preventDefault());
   }
 
   // Spec 41: another window took over. Nothing here plays or writes from now on.
@@ -435,9 +439,14 @@ export class PodPlayer extends HTMLElement {
     if (this.importEnabled) this.#haptic();
   }
 
+  // Spec 49: a button's switch, felt going down and coming up. The wheel's limit is not for it.
+  buzz(ms) {
+    if (this.product && this.settings.values.clicker === "on") navigator.vibrate?.(ms);
+  }
+
   #haptic() {
     const now = performance.now();
-    if (now - this.lastHaptic < HAPTIC_GAP || !navigator.vibrate) return;
+    if (now - this.lastHaptic < HAPTIC_GAP || !navigator.vibrate || this.power?.pressing) return;
     this.lastHaptic = now;
     navigator.vibrate(4);
   }
@@ -601,6 +610,7 @@ export class PodPlayer extends HTMLElement {
     const inert = this.inert;
     screen.classList.toggle("lit", this.backlit);
     screen.classList.toggle("inert", inert);
+    screen.classList.toggle("off", this.off);
     parts.boot.hidden = !(this.loading && !this.offline && !this.lost);
     const name = this.deviceName;
     if (parts.bootName.textContent !== name) parts.bootName.textContent = name;

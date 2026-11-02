@@ -68,6 +68,7 @@ A new suite works in the pool if it follows these rules:
 | `t21` | off, battery, charging screen, restart, a real waiting worker (specs 39, 42) |
 | `t22` | the reviews' rulings on pausing, failed tracks, new queues, parked queues, one window, the chord, Browse, tags (specs 43, 45) |
 | `t23` | the reviews' rulings on the library on both pages, the composer reread, Skipped marks, Extras, the calendar (specs 44, 46) |
+| `t24` | the off screen's unlit LCD, from screenshots, and the buttons' haptics and touch against a stubbed `navigator.vibrate` (specs 48 to 51) |
 
 ## Notes
 
