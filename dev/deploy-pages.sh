@@ -1,7 +1,7 @@
 #!/bin/sh
 # Puts dist/ on Cloudflare Pages. make deploy runs this through sage-secret, which supplies the token.
 #   sh dev/deploy-pages.sh --ready    stop if the vault item is a stub or the tree has changes
-#   sh dev/deploy-pages.sh PROJECT    create the project if needed, then upload dist/
+#   sh dev/deploy-pages.sh PROJECT    upload dist/ to that existing Pages project
 # master goes to production. Any other branch gets a preview address.
 set -eu
 
@@ -23,6 +23,10 @@ fi
 [ "$1" = "--ready" ] && exit 0
 
 project=$1
-$WRANGLER pages project list --json | grep -q "\"$project\"" ||
-  $WRANGLER pages project create "$project" --production-branch master
+# wrangler 4.156 hands "pages project create" to Workers, which fails with no Worker entry point.
+# So a project is made once through the Pages API, with master as production (mpod: 2026-11-02).
+if ! $WRANGLER pages project list --json | grep -q "\"$project\""; then
+  echo "No Pages project named $project. Create it once through the Pages API, with master as production." >&2
+  exit 1
+fi
 $WRANGLER pages deploy dist --project-name "$project" --branch "$(git rev-parse --abbrev-ref HEAD)"

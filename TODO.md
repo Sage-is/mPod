@@ -30,6 +30,8 @@ This file tracks active work only.
   - [ ] [MANUALLY] Reinstall on the phone, or wait for Chrome to refresh the installed app
 
 - [ ] **Final device checks** [MANUALLY]: phone test passed 2026-11-01
+  - [x] Looks right on phones, iPad, Mac and Windows (Alexander, 2026-11-02)
+  - [ ] Try it on Linux
   - [ ] Install on a computer, link a folder, try the media keys
   - [ ] Reconnect tap in the installed app after a restart
 
@@ -44,12 +46,21 @@ This file tracks active work only.
   - [x] [MANUALLY] Token in `cloudflare-startr-cloud-pages-deploy`: active, Pages works, all six Startr zones (2026-11-02)
   - [x] [MANUALLY] Its `account-id` is the account that owns `startr.cloud`; Pages answers through it
   - [ ] [MANUALLY] Keep `cloudflare-sage-is-pages-deploy` for a sage.is Pages token (Alexander's plan)
-  - [ ] [WE] After the first deploy, attach `mpod.startr.cloud` to the Pages project and add its DNS record
   - [x] [WE] `make deploy`: stops early on an empty or unresolved token or a dirty tree, checks, creates the project if needed, uploads `dist/`; `master` is production, other branches get a preview; Netlify and nginx take the same folder
-  - [ ] [MANUALLY] Release this batch to `master` with git-flow
-  - [ ] [WE] First `make deploy` from `master`, then retire the tailnet page and `make publish`
+  - [x] [WE] Release `v0.1.0` to `master` with git-flow, on Alexander's yes (2026-11-02)
+  - [x] [WE] First deploy from `master`: project `mpod` made through the Pages API, since wrangler 4.156 hands project creation to Workers; live on `mpod-6b8.pages.dev`
+  - [x] [WE] `mpod.startr.cloud` attached to the project, with a proxied CNAME
+  - [ ] [WE] Retire the tailnet page and `make publish` once Alexander has moved to the new address
   - [x] [WE] `_headers`: `X-Robots-Tag: noindex` until Alexander announces it
   - [ ] [MANUALLY] Reinstall from the new address and link folders again: a new origin starts empty
+
+- [ ] **Open source release**: AGPL-3.0-or-later (Alexander, 2026-11-04) #platform
+  - [x] [WE] `LICENSE` (the GNU text) and the README licence section, with the section 7(e) note on the name
+  - [x] Copyright holder in the README: Alexander Somma (confirmed 2026-11-05)
+  - [x] [WE] A source link people can find: "Source code" in the page menu (section 13)
+  - [x] Screen font in a public repo: ChicagoFLF 2.1 on its public-domain note (Alexander, 2026-11-05); `docs/FONT.md`
+  - [x] [WE] Make `Sage-is/mPod` public with `gh` on Alexander's word (2026-11-05); the history stays, since the font stays
+  - [ ] `Sage-is/Pod-Recomp` stays private until the lawyer has seen the specs
 
 - [ ] **CI/CD**: runs on the cluster; the card lives in `OPS-Sage/TODO.md` #platform
   - [ ] [WE] `make check` becomes this repo's job once the runner exists; it needs headless Chrome
@@ -99,7 +110,15 @@ This file tracks active work only.
   - [ ] Letter jump in long lists
   - [ ] Hold switch: set aside by Alexander, 2026-11-01
   - [ ] Colour skins and other device styles; steer OLED phones to black styles (Alexander, 2026-11-02)
+  - [ ] Let people move the device to suit their screen: on the Fold4 outer screen it sits a little high; keep a position per screen size, since the Fold has two (Alexander, 2026-11-02)
   - [ ] Selection bar running to the display edge
+
+- [ ] **Page menu outside the device**: a quiet corner icon opens a panel; the device itself stays untouched (Alexander, 2026-11-02) #device
+  - [ ] Look: three bars that turn into an X, panel slides in from the side, as in `codepen.io/openco/pen/agvLeE` (CSS only)
+  - [ ] Build on the HTML `popover` attribute, not the pen's hidden checkbox: a real button; Esc and a tap outside close it
+  - [ ] Keys and touches in the panel never reach the wheel or buttons; the icon clears the camera cut-out in full screen
+  - [ ] Candidates for the panel: device position (Device ideas), About mPod with the anniversary note, help
+  - [ ] Idea: hide the three bars until a tap outside the device; fade out after ~4 s; show for 2 s on load, on keyboard focus and on hover near the corner (Alexander, 2026-11-05)
 
 - [ ] **Library and system ideas**
   - [ ] Folder browsing that follows the disk layout
@@ -115,7 +134,7 @@ This file tracks active work only.
   - [ ] Install: `sw.js` stores what arrives; a per-file hash would catch a mixed rollout
 
 - [ ] **Clean-up if it grows**: the release risk is accepted, so none of these block anything
-  - [ ] Replace or clear the screen font (`docs/FONT.md`): our own file from a design, or a CleanRoom `font` kind
+  - [x] Clear the screen font (`docs/FONT.md`): ChicagoFLF 2.1 ships on its public-domain note (Alexander, 2026-11-05)
   - [ ] Re-derive `src/styles.js` to cut the CSS overlap
   - [ ] [MANUALLY] Trademark check on `mPod`
   - [ ] [MANUALLY] Lawyer review of the look and the method

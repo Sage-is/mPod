@@ -1,10 +1,10 @@
 # mPod
 
-A pocket music player for your own music, as an installable web app. The code is private.
+A pocket music player for your own music, as an installable web app. Free and open source under the GNU AGPL, version 3 or later.
 
 ## A love letter to the iPod
 
-Apple released the first iPod on 10 November 2001. mPod’s first public release, v0.1.0, marks its 25th anniversary on 10 November 2026. This is an homage to the first and second generation iPod, made as a work of love.
+Apple released the first iPod on Nov. 10, 2001. mPod’s first public release, v0.1.0, marks its 25th anniversary on Nov. 10, 2026. This is an homage to the first and second generation iPod, made as a work of love.
 
 The wheel turns beneath your hand, each step gives its tick, and the buttons press like switches. The grey LCD and its backlight complete the small, familiar world we wanted to honour.
 
@@ -45,3 +45,18 @@ Then open `http://127.0.0.1:8080/`. Folder access, the service worker and instal
 Alexander accepted the risk on 2026-11-01. The font, the CSS overlap, the name and the look ship as they are, and a complaint means taking the site down. `src/pod-screen.ttf` is ChicagoFLF 2.1: see `docs/FONT.md`.
 
 Test specifications and comparison tools live in the private `Sage-is/Pod-Recomp` repo.
+
+## Licence
+
+Copyright © 2026 Alexander Somma.
+
+mPod is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. It comes with no warranty. See `LICENSE`.
+
+If you run a modified mPod for other people, offer them its source, as section 13 asks.
+
+Additional term under section 7(e): this licence grants no rights to the name mPod or its icon as trademarks.
+
+Not covered by this licence:
+
+- `src/pod-screen.ttf` is ChicagoFLF 2.1 by Robin Casady, who placed it in the public domain. See `docs/FONT.md`.
+- The photos in `docs/images/` keep their own Creative Commons licences, credited above.

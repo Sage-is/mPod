@@ -17,6 +17,91 @@
     overflow: hidden;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
+
+  /* Page menu: outside the device, so nothing here reaches the wheel. */
+  :root {
+    --menu-bg: #262626;
+    --menu-ink: #ebebe7;
+    --menu-dim: #a6a6a2;
+    --menu-line: #3b3b3b;
+    --menu-speed: 0.28s;
+  }
+  .menu-toggle {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 12px);
+    left: calc(env(safe-area-inset-left) + 12px);
+    z-index: 1;
+    display: grid;
+    place-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--menu-ink);
+    opacity: 0.4;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .menu-toggle:hover, .menu-toggle:focus-visible { opacity: 1; }
+  .menu-toggle:focus-visible { outline: 2px solid var(--menu-ink); outline-offset: 2px; }
+  .menu-toggle span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    transition: translate var(--menu-speed), rotate var(--menu-speed), opacity 0.2s;
+  }
+  body:has(#page-menu:popover-open) .menu-toggle span:nth-child(1), .menu-close span:nth-child(1) { translate: 0 7px; rotate: 45deg; }
+  body:has(#page-menu:popover-open) .menu-toggle span:nth-child(2), .menu-close span:nth-child(2) { opacity: 0; }
+  body:has(#page-menu:popover-open) .menu-toggle span:nth-child(3), .menu-close span:nth-child(3) { translate: 0 -7px; rotate: -45deg; }
+  .menu-close { position: static; flex: none; opacity: 0.8; }
+
+  #page-menu {
+    position: fixed;
+    inset: 0 auto 0 0;
+    box-sizing: border-box;
+    width: min(22rem, 86vw);
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: calc(env(safe-area-inset-top) + 12px) 24px calc(env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 24px);
+    border: 0;
+    border-right: 1px solid var(--menu-line);
+    background: var(--menu-bg);
+    color: var(--menu-ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    translate: -100% 0;
+    transition: translate var(--menu-speed) ease, display var(--menu-speed) allow-discrete, overlay var(--menu-speed) allow-discrete;
+  }
+  #page-menu:popover-open { translate: 0 0; }
+  @starting-style { #page-menu:popover-open { translate: -100% 0; } }
+  #page-menu::backdrop {
+    background: rgb(0 0 0 / 0);
+    transition: background var(--menu-speed), display var(--menu-speed) allow-discrete, overlay var(--menu-speed) allow-discrete;
+  }
+  #page-menu:popover-open::backdrop { background: rgb(0 0 0 / 0.45); }
+  @starting-style { #page-menu:popover-open::backdrop { background: rgb(0 0 0 / 0); } }
+  #page-menu header { display: flex; align-items: center; gap: 8px; margin: 0 0 20px -12px; }
+  #page-menu h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.01em; }
+  #page-menu p, #page-menu ul { margin: 0 0 14px; }
+  #page-menu ul { padding-left: 1.1em; }
+  #page-menu li + li { margin-top: 6px; }
+  #page-menu details { margin: 22px 0; padding: 14px 0; border-block: 1px solid var(--menu-line); }
+  #page-menu details + details { margin-top: -22px; border-top: 0; }
+  #page-menu summary { font-weight: 600; cursor: pointer; }
+  #page-menu details[open] summary { margin-bottom: 10px; }
+  #page-menu a { color: inherit; text-underline-offset: 3px; }
+  #page-menu .menu-small { color: var(--menu-dim); font-size: 13px; }
+  @media (prefers-reduced-motion: reduce) {
+    .menu-toggle span, #page-menu, #page-menu::backdrop { transition: none; }
+  }
 </style>
 <script type="module" src="src/pod-player.js"></script>
 <script>
@@ -31,5 +116,35 @@
 <main>
   <pod-player import fit></pod-player>
 </main>
+<button class="menu-toggle" type="button" popovertarget="page-menu" aria-label="Open the mPod menu"><span></span><span></span><span></span></button>
+<aside id="page-menu" popover aria-label="mPod menu">
+  <header>
+    <button class="menu-toggle menu-close" type="button" popovertarget="page-menu" popovertargetaction="hide" aria-label="Close the menu" autofocus><span></span><span></span><span></span></button>
+    <h2>mPod</h2>
+  </header>
+  <p>The iPod went on sale on Nov. 10, 2001, promising a thousand songs in your pocket and very little else. The first release of mPod arrives on Nov. 10, 2026, 25 years to the day, and shares that modesty. It does one job on one device: It plays your music. There are no feeds, no advertisements and no notifications. The songs live in folders on your device, play without an internet connection and never leave it.</p>
+  <p>Slashdot offered its assessment on Oct. 23, 2001, the day Apple unveiled the iPod: “No wireless. Less space than a nomad. Lame.” It was a sharp line, and not an unreasonable one for its moment. A quarter-century on, it reads rather differently. We have kept the part that endured.</p>
+  <details>
+    <summary>How to use it</summary>
+    <ul>
+      <li>To add music, choose Add Folder on the device. mPod reads the folder where it is and makes no copy.</li>
+      <li>Turn the wheel to move through a list. Press the centre button to choose.</li>
+      <li>Menu goes back one step.</li>
+      <li>On a keyboard, the arrow keys move, Enter chooses and Escape goes back.</li>
+    </ul>
+  </details>
+  <details>
+    <summary>Further Reading</summary>
+    <ul>
+      <li><a href="https://web.archive.org/web/20011109115712/http://www.apple.com:80/pr/library/2001/oct/23ipod.html" target="_blank" rel="noopener">Apple presents iPod, Oct. 23, 2001</a></li>
+      <li><a href="https://web.archive.org/web/20020826011100/http://slashdot.org:80/articles/01/10/23/1816257.shtml" target="_blank" rel="noopener">Slashdot’s first verdict on the iPod</a></li>
+      <li><a href="https://web.archive.org/web/20120803192710/https://www.vitsoe.com/gb/about/good-design" target="_blank" rel="noopener">Dieter Rams: ten principles of good design</a></li>
+      <li><a href="https://web.archive.org/web/20260221190536/https://www.axios.com/2026/02/21/ipods-music-genz-nostalgia" target="_blank" rel="noopener">Why people are buying iPods again</a></li>
+      <li><a href="https://web.archive.org/web/20260304044344/https://www.spokesman.com/stories/2026/mar/02/bring-on-defunct-the-ipod-enthralls-young-music-li/" target="_blank" rel="noopener">Young listeners turn back to the iPod</a></li>
+    </ul>
+  </details>
+  <p><a href="https://github.com/Sage-is/mPod" target="_blank" rel="noopener">Source code</a>, under the GNU AGPL, version 3 or later.</p>
+  <p class="menu-small">Made by Alexander Somma with Sage.is AI. An unofficial fan project, not affiliated with or endorsed by Apple Inc. iPod is a trademark of Apple Inc.</p>
+</aside>
 </body>
 </html>
