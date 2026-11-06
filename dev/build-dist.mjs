@@ -7,7 +7,8 @@ import { precacheList } from "./build-sw.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist");
-const files = [...precacheList(), "sw.js", "sw-precache.js", "_headers"];
+// The share card and robots.txt ship but stay out of the offline cache.
+const files = [...precacheList(), "sw.js", "sw-precache.js", "_headers", "robots.txt", "share-card.png"];
 
 rmSync(dist, { recursive: true, force: true });
 for (const file of files) cpSync(join(root, file), join(dist, file));

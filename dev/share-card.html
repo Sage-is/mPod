@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- The share card's layout, 1200×630. dev/share-card.mjs renders it to share-card.png. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>mPod share card</title>
+<script type="module" src="../src/pod-player.js"></script>
+<style>
+  @font-face { font-family: "pod-screen"; src: url("../src/pod-screen.ttf"); }
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #1f1f1f; color: #ebebe7; }
+  body { display: grid; grid-template-columns: 470px 1fr; align-items: center; font-family: system-ui, sans-serif; }
+  pod-player { display: block; width: 470px; height: 560px; }
+  .words { padding-right: 80px; }
+  h1 { margin: 0 0 18px; font: 96px/1 "pod-screen", system-ui; letter-spacing: 0.01em; }
+  .dates { margin: 0 0 30px; font: 34px/1.2 "pod-screen", system-ui; color: #a6a6a2; }
+  .line { margin: 0; font-size: 30px; line-height: 1.35; }
+  .site { margin: 34px 0 0; font-size: 22px; color: #a6a6a2; }
+</style>
+</head>
+<body>
+<pod-player fit></pod-player>
+<div class="words">
+  <h1>mPod</h1>
+  <p class="dates">Nov. 10, 2001 · Nov. 10, 2026</p>
+  <p class="line">25 years to the day after the iPod: a free, open&#8209;source pod for the music you already own.</p>
+  <p class="site">mpod.startr.cloud</p>
+</div>
+</body>
+</html>

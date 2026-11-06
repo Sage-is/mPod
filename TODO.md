@@ -62,6 +62,14 @@ This file tracks active work only.
   - [x] [WE] Make `Sage-is/mPod` public with `gh` on Alexander's word (2026-11-05); the history stays, since the font stays
   - [ ] `Sage-is/Pod-Recomp` stays private until the lawyer has seen the specs
 
+- [ ] **Launch on Nov. 10, 2026**: share cards and page basics before `noindex` comes off #platform
+  - [x] [WE] `share-card.png`, 1200×630: our own device render, no Apple photos or logo; `node dev/share-card.mjs` remakes it from `dev/share-card.html`
+  - [x] [WE] `<meta name="description">`, Open Graph (`og:title`, `og:description`, `og:image`, `og:url`, `og:type`, `og:site_name`), `twitter:card` `summary_large_image`, canonical link
+  - [x] [WE] `description` in `manifest.webmanifest`; `robots.txt`; both new files ship in `dist/` but stay out of the offline cache
+  - [x] [MANUALLY] Card wording and look: the device plus both dates; the anniversary line (Alexander, 2026-11-05)
+  - [ ] [WE] Check the card in a share preview before launch
+  - [ ] [WE] Drop `X-Robots-Tag: noindex` from `_headers`; `make patch_release`, `make release_finish`, `make deploy` from `master`
+
 - [ ] **CI/CD**: runs on the cluster; the card lives in `OPS-Sage/TODO.md` #platform
   - [ ] [WE] `make check` becomes this repo's job once the runner exists; it needs headless Chrome
   - [ ] [WE] Until then, a pre-commit hook running `node dev/build-sw.mjs --check`

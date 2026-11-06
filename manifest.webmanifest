@@ -2,6 +2,7 @@
   "id": "mpod",
   "name": "mPod",
   "short_name": "mPod",
+  "description": "25 years to the day after the iPod: a free, open-source pod for the music you already own.",
   "start_url": ".",
   "scope": ".",
   "display": "fullscreen",
